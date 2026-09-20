@@ -8,6 +8,8 @@
 
 # @fast-china/axios
 
+**[Documentation](http://docs.fastdotnet.cn/axios/) · [Official website](http://fastdotnet.com)**
+
 A typed Axios request library for Fast applications, browsers, and uni-app, with Fast.NET response handling, a uni-app adapter, and mini-program build plugins.
 
 [![npm version](https://img.shields.io/npm/v/@fast-china/axios?color=orange)](https://www.npmjs.com/package/@fast-china/axios) [![node](https://img.shields.io/badge/node-%5E22.18%20%7C%7C%20%5E24.18-brightgreen)](https://nodejs.org/) [![axios](https://img.shields.io/badge/axios-%5E1.8.1-5a29e4)](https://axios-http.com/) [![license](https://img.shields.io/npm/l/@fast-china/axios)](./LICENSE)
@@ -96,100 +98,15 @@ By default, `axiosUtil.request()` reads `code`, `success`, `message`, and `data`
 
 ## Project handlers
 
-Every project-level handler uses `.use()` to replace its current implementation. This is not Axios's native interceptor queue; the most recent registration wins:
-
-```ts
-fastAxios.message.error.use((message) => {
-	// Connect the application's Message component.
-});
-
-fastAxios.loading.show.use((text) => {
-	// Show Loading.
-});
-
-fastAxios.loading.close.use((_options) => {
-	// Close Loading and manage concurrent request counts in the application.
-});
-
-fastAxios.interceptors.request.use((config) => {
-	config.headers.set("X-Request-Source", "fast-app");
-});
-
-fastAxios.interceptors.response.use((response) => {
-	// Return null or undefined to continue the built-in response flow.
-	return undefined;
-});
-
-fastAxios.interceptors.responseError.use((_error) => {
-	// Return a non-null value to replace the final rejected error.
-	return undefined;
-});
-```
-
-Cache, request encryption, and response decryption are registered through `cache.get/set.use()` and `crypto.encrypt/decrypt.use()`. The default crypto handlers do not provide cryptographic protection; register the application's protocol before enabling `requestCipher`.
+[Full configuration and examples](http://docs.fastdotnet.cn/axios/guide.en)
 
 ## uni-app adapter
 
-`axiosUtil.request()` automatically uses the uni-app adapter when the global `uni` object exists. Fast.NET-generated mobile uploads keep the established method contract:
-
-```ts
-const fileId = await axiosUtil.request<string>({
-	url: "/files/avatar",
-	method: "upload",
-	requestType: "upload",
-	filePath,
-	name: "file",
-	cancelDuplicateRequest: false,
-});
-```
-
-Install the adapter explicitly when creating a raw Axios instance:
-
-```ts
-import axios from "axios";
-import { createUniAppAxiosAdapter } from "@fast-china/axios";
-
-const http = axios.create({
-	adapter: createUniAppAxiosAdapter(),
-	baseURL: "https://api.example.com",
-});
-
-const response = await http.upload(
-	"/files/avatar",
-	{},
-	{
-		filePath,
-		name: "file",
-	}
-);
-```
-
-See the [uni-app adapter documentation](./src/uni-adapter/README.md) for upload, download, cancellation, progress, and platform behavior.
+[Full configuration and examples](http://docs.fastdotnet.cn/axios/guide.en)
 
 ## Mini-program build plugins
 
-Use the dedicated Vite subpath. The plugin is active only when `UNI_PLATFORM` starts with `mp-`:
-
-```ts
-import { defineConfig } from "vite";
-import uniAppAxiosPlugin from "@fast-china/axios/vite";
-
-export default defineConfig({
-	plugins: [uniAppAxiosPlugin()],
-});
-```
-
-For Webpack:
-
-```ts
-import uniAppAxiosPlugin from "@fast-china/axios/webpack";
-
-export default {
-	plugins: [uniAppAxiosPlugin()],
-};
-```
-
-The plugin replaces Axios FormData and Blob platform modules and fails the build when the application cannot resolve the required polyfill. H5, App, and ordinary Web builds retain their original modules.
+[Full configuration and examples](http://docs.fastdotnet.cn/axios/guide.en)
 
 ## Package entries
 
@@ -204,9 +121,9 @@ Importing the package does not access `window` or `uni`. Platform APIs are acces
 
 ## Documentation
 
-- [API reference](./docs/API.md)
-- [uni-app adapter](./src/uni-adapter/README.md)
-- [Runtime and package contract](./docs/RUNTIME_CONTRACT.md)
+- [API reference](http://docs.fastdotnet.cn/axios/api.en)
+- [uni-app adapter](http://docs.fastdotnet.cn/axios/uni-app-adapter.en)
+- [Runtime and package contract](http://docs.fastdotnet.cn/axios/runtime-contract)
 - [Development and release](./docs/DEVELOPMENT_RELEASE.zh-CN.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Security policy](./SECURITY.md)

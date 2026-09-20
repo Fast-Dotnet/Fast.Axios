@@ -8,6 +8,8 @@
 
 # @fast-china/axios
 
+**[使用文档](http://docs.fastdotnet.cn/axios/) · [官方网站](http://fastdotnet.com)**
+
 面向 Fast 项目、浏览器与 uni-app 的类型化 Axios 请求库，内置 Fast.NET 响应处理、uni-app adapter 和小程序构建插件。
 
 [![npm 版本](https://img.shields.io/npm/v/@fast-china/axios?color=orange)](https://www.npmjs.com/package/@fast-china/axios) [![node](https://img.shields.io/badge/node-%5E22.18%20%7C%7C%20%5E24.18-brightgreen)](https://nodejs.org/) [![axios](https://img.shields.io/badge/axios-%5E1.8.1-5a29e4)](https://axios-http.com/) [![开源协议](https://img.shields.io/npm/l/@fast-china/axios)](./LICENSE)
@@ -96,100 +98,15 @@ const user = await axiosUtil.request<User>({
 
 ## 项目处理器
 
-所有项目级处理器都通过 `.use()` 替换当前实现。它不是 Axios 原生的多拦截器队列，重复注册时以最后一次为准：
-
-```ts
-fastAxios.message.error.use((message) => {
-	// 接入项目自己的 Message 组件。
-});
-
-fastAxios.loading.show.use((text) => {
-	// 显示 Loading。
-});
-
-fastAxios.loading.close.use((_options) => {
-	// 关闭 Loading，并自行处理并发请求计数。
-});
-
-fastAxios.interceptors.request.use((config) => {
-	config.headers.set("X-Request-Source", "fast-app");
-});
-
-fastAxios.interceptors.response.use((response) => {
-	// 返回 null 或 undefined 时继续执行内置响应流程。
-	return undefined;
-});
-
-fastAxios.interceptors.responseError.use((_error) => {
-	// 返回非空值时替换最终抛出的错误。
-	return undefined;
-});
-```
-
-缓存、请求加密和响应解密同样通过 `cache.get/set.use()` 与 `crypto.encrypt/decrypt.use()` 接入。默认加解密处理器不会提供实际密码学保护，启用 `requestCipher` 前必须注册项目自己的协议实现。
+[完整配置与示例](http://docs.fastdotnet.cn/axios/guide)
 
 ## uni-app adapter
 
-`axiosUtil.request()` 检测到全局 `uni` 时会自动使用 uni-app adapter。Fast.NET 生成的移动端上传调用保持原有约定：
-
-```ts
-const fileId = await axiosUtil.request<string>({
-	url: "/files/avatar",
-	method: "upload",
-	requestType: "upload",
-	filePath,
-	name: "file",
-	cancelDuplicateRequest: false,
-});
-```
-
-如果直接创建 Axios 实例，可显式安装 adapter：
-
-```ts
-import axios from "axios";
-import { createUniAppAxiosAdapter } from "@fast-china/axios";
-
-const http = axios.create({
-	adapter: createUniAppAxiosAdapter(),
-	baseURL: "https://api.example.com",
-});
-
-const response = await http.upload(
-	"/files/avatar",
-	{},
-	{
-		filePath,
-		name: "file",
-	}
-);
-```
-
-上传、下载、取消、进度事件和平台差异见 [uni-app adapter 中文文档](./src/uni-adapter/README.zh.md)。
+[完整配置与示例](http://docs.fastdotnet.cn/axios/guide)
 
 ## 小程序构建插件
 
-Vite 项目使用独立子路径，插件只在 `UNI_PLATFORM` 以 `mp-` 开头时生效：
-
-```ts
-import { defineConfig } from "vite";
-import uniAppAxiosPlugin from "@fast-china/axios/vite";
-
-export default defineConfig({
-	plugins: [uniAppAxiosPlugin()],
-});
-```
-
-Webpack 项目使用：
-
-```ts
-import uniAppAxiosPlugin from "@fast-china/axios/webpack";
-
-export default {
-	plugins: [uniAppAxiosPlugin()],
-};
-```
-
-插件会替换 Axios 的 FormData、Blob 平台模块，并在应用项目缺少对应兼容包时直接终止构建。H5、App 和普通 Web 构建保持原始模块不变。
+[完整配置与示例](http://docs.fastdotnet.cn/axios/guide)
 
 ## 包入口
 
@@ -204,9 +121,9 @@ export default {
 
 ## 文档
 
-- [API 文档](./docs/API.zh-CN.md)
-- [uni-app adapter](./src/uni-adapter/README.zh.md)
-- [运行时与包契约](./docs/RUNTIME_CONTRACT.md)
+- [API 文档](http://docs.fastdotnet.cn/axios/api)
+- [uni-app adapter](http://docs.fastdotnet.cn/axios/uni-app-adapter)
+- [运行时与包契约](http://docs.fastdotnet.cn/axios/runtime-contract)
 - [开发与发布](./docs/DEVELOPMENT_RELEASE.zh-CN.md)
 - [贡献指南](./CONTRIBUTING.md)
 - [安全策略](./SECURITY.md)

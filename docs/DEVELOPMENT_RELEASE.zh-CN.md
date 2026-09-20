@@ -46,9 +46,9 @@ pnpm install --frozen-lockfile
 公开行为变更必须同时检查：
 
 - `README.md` 与 `README.zh.md`；
-- `docs/API.md` 与 `docs/API.zh-CN.md`；
-- `docs/RUNTIME_CONTRACT.md`；
-- `src/uni-adapter/README.md` 与 `src/uni-adapter/README.zh.md`；
+- [api.en](http://docs.fastdotnet.cn/axios/api.en) 与 [api](http://docs.fastdotnet.cn/axios/api)；
+- [runtime-contract](http://docs.fastdotnet.cn/axios/runtime-contract)；
+- [uni-app-adapter.en](http://docs.fastdotnet.cn/axios/uni-app-adapter.en) 与 [uni-app-adapter](http://docs.fastdotnet.cn/axios/uni-app-adapter)；
 - `CHANGELOG.md`；
 - 对应公开 API 的 TSDoc/JSDoc。
 
