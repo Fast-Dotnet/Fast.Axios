@@ -1,7 +1,8 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, AxiosHeaders } from "axios";
 import { createUniAppAxiosAdapter } from "../uni-adapter";
 import { useFastAxios } from "./fastAxios";
-import type { AxiosRequestConfig, AxiosResponse, Canceler, InternalAxiosRequestConfig } from "axios";
+import { appendCacheBuster, serializeRequestBody } from "./request-identity";
+import type { AxiosResponse, Canceler, InternalAxiosRequestConfig } from "axios";
 import type { ApiResponse, AxiosOptions, FastAxiosRequestConfig } from "./types";
 
 /** 单次请求没有显式配置时采用的 Fast 流程默认值。 */
@@ -34,36 +35,36 @@ type ResolvedRequestOptions<Input> = FastAxiosRequestConfig<Input> & Required<Ax
 const pendingMap = new Map<string, Canceler>();
 
 /**
- * 根据 Axios 最终 URL、真实 HTTP Method 和请求体生成重复请求及缓存使用的稳定 key。
+ * 根据实际请求生成进程内去重标识；无法可靠序列化的请求体默认不参与自动去重。
  *
- * 字符串 data 保持原值，不能直接 JSON.parse；普通文本和已序列化 JSON 都是合法 Axios 请求体。
- *
- * @param config 已合并 baseURL、params、method 和 data 的 Axios 请求配置。
- * @returns 可同时用于 pendingMap 和缓存处理器的字符串 key。
+ * 标识只在请求期间保留，不写入缓存或取消错误。显式 duplicateKey 表示调用方负责判断等价请求。
  */
-const getRequestKey = (config: AxiosRequestConfig): string => {
-	let data = "";
-	// Axios transformRequest 可能已经把 JSON 转成字符串，此时必须原样参与 key 计算。
-	if (typeof config.data === "string") {
-		data = config.data;
-	} else if (config.data !== undefined) {
-		try {
-			// 普通对象按内容序列化，使相同 URL 但不同请求体不会被识别为重复请求。
-			data = JSON.stringify(config.data);
-		} catch {
-			// 循环对象等不可序列化数据仍可请求，但只能使用对象类型作为降级标识。
-			data = Object.prototype.toString.call(config.data);
-		}
-	}
+const getRequestKey = (config: InternalAxiosRequestConfig, duplicateKey?: string): string | undefined => {
+	const data = duplicateKey ?? serializeRequestBody(config.data);
+	if (data === undefined) return undefined;
+	return JSON.stringify([
+		axios.getUri(config),
+		(config.method ?? "GET").toUpperCase(),
+		data,
+		Object.entries(AxiosHeaders.from(config.headers).toJSON()).sort(([left], [right]) => left.localeCompare(right)),
+		config.auth,
+		config.withCredentials,
+		duplicateKey === undefined ? "body" : "explicit",
+	]);
+};
 
-	// axios.getUri 负责统一处理 baseURL、params 和 paramsSerializer，method 统一大写消除大小写差异。
-	return [axios.getUri(config), (config.method ?? "GET").toUpperCase(), data].join("&");
+/** 凭据只参与摘要计算，不以明文进入持久化缓存键；不支持 Web Crypto 时安全地跳过缓存。 */
+const createCacheKey = async (namespace: string, requestKey: string, generation: number): Promise<string | undefined> => {
+	if (!globalThis.crypto?.subtle || typeof TextEncoder === "undefined") return undefined;
+	const bytes = new TextEncoder().encode(JSON.stringify([namespace, requestKey, generation]));
+	const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+	return `fast-cache:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 };
 
 /**
  * 取消并移除同 key 的上一条请求；新请求必须在此操作完成后再写入 pendingMap。
  *
- * @param key 当前请求计算出的重复请求 key。
+ * @param key - 当前请求计算出的重复请求 key。
  */
 const cancelPendingRequest = (key: string): void => {
 	const cancel = pendingMap.get(key);
@@ -71,7 +72,7 @@ const cancelPendingRequest = (key: string): void => {
 
 	// 先删除再取消，避免旧请求的异步错误清理误命中新写入的请求。
 	pendingMap.delete(key);
-	cancel(key);
+	cancel("Duplicate request canceled.");
 };
 
 /**
@@ -79,8 +80,8 @@ const cancelPendingRequest = (key: string): void => {
  *
  * 调用方已经提供 CancelToken 时不覆盖它；该请求仍可取消上一条重复请求，但不会加入自动重复取消表。
  *
- * @param key 当前请求的重复请求 key。
- * @param config 即将交给 Axios adapter 的内部请求配置。
+ * @param key - 当前请求的重复请求 key。
+ * @param config - 即将交给 Axios adapter 的内部请求配置。
  * @returns 当前请求对应的取消函数；已有外部 CancelToken 时返回 undefined。
  */
 const addPendingRequest = (key: string, config: InternalAxiosRequestConfig): Canceler | undefined => {
@@ -95,8 +96,8 @@ const addPendingRequest = (key: string, config: InternalAxiosRequestConfig): Can
 /**
  * 仅当 map 中仍是当前请求的取消函数时才删除，不能取消任何正在执行的请求。
  *
- * @param key 请求拦截器生成的 key；拦截器尚未执行时可能为 undefined。
- * @param cancel 当前请求写入 pendingMap 的取消函数。
+ * @param key - 请求拦截器生成的 key；拦截器尚未执行时可能为 undefined。
+ * @param cancel - 当前请求写入 pendingMap 的取消函数。
  */
 const removePendingRequest = (key: string | undefined, cancel: Canceler | undefined): void => {
 	if (key && cancel && pendingMap.get(key) === cancel) pendingMap.delete(key);
@@ -105,7 +106,7 @@ const removePendingRequest = (key: string | undefined, cancel: Canceler | undefi
 /**
  * 将服务端 message 安全转换为可供 UI 和 AxiosError 使用的字符串。
  *
- * @param message Fast RESTful 接口返回的任意 message 值。
+ * @param message - Fast RESTful 接口返回的任意 message 值。
  * @returns 可展示字符串；null、undefined、函数等无有效文本的值返回 undefined。
  */
 const normalizeMessage = (message: unknown): string | undefined => {
@@ -129,7 +130,7 @@ const normalizeMessage = (message: unknown): string | undefined => {
  *
  * 错误信息优先级为：响应体 message → 自定义 errorCode 映射 → default 通用提示。
  *
- * @param error Axios adapter、HTTP 状态校验或请求拦截器产生的错误。
+ * @param error - Axios adapter、HTTP 状态校验或请求拦截器产生的错误。
  * @returns 最终传给 Message error 处理器的文字。
  */
 const httpErrorStatusHandle = async <Input>(error: AxiosError<unknown, Input>): Promise<string> => {
@@ -155,7 +156,7 @@ const httpErrorStatusHandle = async <Input>(error: AxiosError<unknown, Input>): 
 /**
  * 从 Content-Disposition 或请求 URL 中提取下载文件名。
  *
- * @param response 已通过 Axios 状态校验的文件响应。
+ * @param response - 已通过 Axios 状态校验的文件响应。
  * @returns RFC 5987 文件名、普通 filename、URL 末段或最终兜底名称 download。
  */
 const getDownloadFileName = (response: AxiosResponse): string => {
@@ -180,7 +181,7 @@ const getDownloadFileName = (response: AxiosResponse): string => {
  *
  * uni-app 下载由 uni-adapter 返回临时文件路径，此函数不重复处理平台文件系统。
  *
- * @param response data 为 Blob 或可构造 Blob 数据的 Axios 文件响应。
+ * @param response - data 为 Blob 或可构造 Blob 数据的 Axios 文件响应。
  * @throws Error 非 uni-app 且运行环境缺少浏览器下载 API 时抛出。
  */
 const downloadFile = (response: AxiosResponse): void => {
@@ -198,11 +199,17 @@ const downloadFile = (response: AxiosResponse): void => {
 	downloadElement.style.display = "none";
 	downloadElement.href = href;
 	downloadElement.download = getDownloadFileName(response);
-	document.body.appendChild(downloadElement);
-	downloadElement.click();
-	// 点击触发后立即释放 DOM 和 Object URL，避免多次下载持续占用内存。
-	document.body.removeChild(downloadElement);
-	window.URL.revokeObjectURL(href);
+	try {
+		document.body.appendChild(downloadElement);
+		downloadElement.click();
+	} finally {
+		// 挂载或点击失败也必须释放本次创建的对象；不移除其他节点。
+		try {
+			downloadElement.remove();
+		} finally {
+			window.URL.revokeObjectURL(href);
+		}
+	}
 };
 
 /**
@@ -210,8 +217,8 @@ const downloadFile = (response: AxiosResponse): void => {
  *
  * 此步骤只合并配置和选择文件任务，不创建 Axios 实例，也不执行任何用户处理器。
  *
- * @param config Fast.NET 生成或调用方手写的单次请求配置。
- * @param defaultRequestCipher `createFastAxios()` 保存的全局加解密开关。
+ * @param config - Fast.NET 生成或调用方手写的单次请求配置。
+ * @param defaultRequestCipher - `createFastAxios()` 保存的全局加解密开关。
  * @returns Fast 扩展字段均已有确定值，并完成 upload/download/export 平台映射的新配置。
  */
 const resolveRequestOptions = <Input>(config: FastAxiosRequestConfig<Input>, defaultRequestCipher: boolean): ResolvedRequestOptions<Input> => {
@@ -250,9 +257,9 @@ const resolveRequestOptions = <Input>(config: FastAxiosRequestConfig<Input>, def
  *
  * 保留重复请求取消、缓存、Loading、加解密、RESTful 校验、文件下载和自定义处理器等现有核心能力。
  *
- * @typeParam Output 调用方最终获得的业务数据类型；文件请求应声明为对应的 AxiosResponse 类型。
- * @typeParam Input Axios data 请求体类型。
- * @param axiosConfig Fast.NET 生成或业务代码传入的完整请求配置。
+ * @typeParam Output - 调用方最终获得的业务数据类型；文件请求应声明为对应的 AxiosResponse 类型。
+ * @typeParam Input - Axios data 请求体类型。
+ * @param axiosConfig - Fast.NET 生成或业务代码传入的完整请求配置。
  * @returns RESTful 简洁数据、自定义响应处理结果、原始响应体或文件 AxiosResponse。
  * @throws AxiosError 网络、超时、取消、HTTP 状态、Fast 业务 code 或文件响应校验失败时抛出。
  */
@@ -262,21 +269,25 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 	const options = resolveRequestOptions(axiosConfig, fastAxios.requestCipher);
 	const method = options.method.toUpperCase();
 
-	// 缓存只保存最终返回给调用方的 RESTful data，保证首次请求与缓存命中的返回结构一致。
-	const canUseCache = options.cache && method === "GET" && options.restfulResult && options.simpleDataFormat;
-	// 缓存 key 在追加 GET 防缓存时间戳之前计算，否则同一业务请求每次都会生成不同 key。
-	const cacheKey = canUseCache ? getRequestKey({ ...options, baseURL: fastAxios.baseUrl }) : undefined;
-	if (cacheKey) {
-		const cachedValue = fastAxios.cache.get(cacheKey);
-		// null/undefined 代表未命中；false、0 和空字符串都属于有效缓存值。
-		if (cachedValue !== null && cachedValue !== undefined) return cachedValue as Output;
-	}
+	// 显式命名空间负责账号/租户/语言和 Cookie 会话隔离；没有声明时不复用响应。
+	const cacheGeneration = fastAxios.cache.generation;
+	const cacheNamespace = options.cacheNamespace ?? fastAxios.cache.namespace;
+	const canUseCache = options.cache && options.restfulResult && options.simpleDataFormat && cacheNamespace.length > 0;
+	let cacheKey: string | undefined;
+	let cacheHit: { value: unknown } | undefined;
 
 	// 同一个时间戳同时提供给自定义加密器和未加密 GET 的防缓存参数。
 	const timestamp = Date.now();
 	// 这两个闭包变量在请求拦截器中赋值，在请求完成后用于精确清理当前 pending 记录。
 	let pendingKey: string | undefined;
 	let pendingCancel: Canceler | undefined;
+	let loadingShown = false;
+	// 未进入 show 的请求（例如提前取消或请求处理器抛错）不能关闭其他请求的 Loading。
+	const closeLoading = (): void => {
+		if (!loadingShown) return;
+		loadingShown = false;
+		fastAxios.loading.close(options);
+	};
 	// 每次请求创建独立 Axios 实例，使本次 options 和拦截器闭包不会污染其他并发请求。
 	const instance = axios.create({
 		// uni-app 环境使用专用 adapter；浏览器和 Node.js 继续使用 Axios 默认 adapter。
@@ -289,19 +300,41 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 
 	// 请求拦截
 	instance.interceptors.request.use(
-		(config: InternalAxiosRequestConfig<Input>) => {
-			// Axios 此时已经合并 baseURL、默认 Method、公共请求头和单次请求配置，可以生成最终重复请求 key。
-			pendingKey = getRequestKey(config);
-			if (options.cancelDuplicateRequest) {
-				// 必须先取消旧请求，再把当前请求写入 map；顺序相反会误取消刚创建的请求。
+		async (config: InternalAxiosRequestConfig<Input>) => {
+			// 等待当前处理器补齐身份、租户和参数后，再进行去重及缓存查询。
+			await fastAxios.interceptors.request(config);
+			const fileTask =
+				(config.method ?? method).toUpperCase() === "UPLOAD" ||
+				Reflect.get(config, "filePath") !== undefined ||
+				Reflect.get(config, "files") !== undefined;
+			pendingKey = fileTask && options.duplicateKey === undefined ? undefined : getRequestKey(config, options.duplicateKey);
+			if (options.cancelDuplicateRequest && pendingKey !== undefined) {
 				cancelPendingRequest(pendingKey);
 				pendingCancel = addPendingRequest(pendingKey, config);
 			}
+			if (
+				canUseCache &&
+				(config.method ?? "GET").toUpperCase() === "GET" &&
+				pendingKey !== undefined &&
+				cacheGeneration === fastAxios.cache.generation
+			) {
+				cacheKey = await createCacheKey(cacheNamespace, pendingKey, cacheGeneration);
+				if (cacheKey !== undefined && cacheGeneration === fastAxios.cache.generation) {
+					const cachedValue = fastAxios.cache.get(cacheKey);
+					if (cachedValue !== null && cachedValue !== undefined) {
+						cacheHit = { value: cachedValue };
+						// 仍经过 Axios 自己的取消检查；不再触发网络、Loading、解密或响应接管。
+						config.adapter = () => Promise.resolve({ data: undefined, status: 200, statusText: "OK", headers: {}, config });
+						return config;
+					}
+				}
+			}
 
-			// Fast 项目自定义请求处理器可以在发送前补充令牌、签名或业务请求头。
-			fastAxios.interceptors.request(config);
 			// 自定义请求处理完成后再显示 Loading；处理器抛错时不会留下已打开的 Loading。
-			if (options.loading) fastAxios.loading.show(options.loadingText);
+			if (options.loading) {
+				fastAxios.loading.show(options.loadingText);
+				loadingShown = true;
+			}
 
 			if (config.responseType === "json") {
 				if (options.requestCipher) {
@@ -309,8 +342,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 					fastAxios.crypto.encrypt(config, timestamp);
 				} else if (options.getMethodCacheHandle && (config.method ?? "GET").toUpperCase() === "GET") {
 					// 未启用加密时追加时间戳，避免浏览器或代理复用过期 GET 响应。
-					const params = config.params && typeof config.params === "object" ? (config.params as Record<string, unknown>) : {};
-					config.params = { ...params, _: timestamp };
+					config.params = appendCacheBuster(config.params, timestamp);
 				}
 			}
 
@@ -322,12 +354,14 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 
 	// 响应拦截
 	instance.interceptors.response.use(
-		((response: AxiosResponse<unknown, Input>): Output => {
+		(async (response: AxiosResponse<unknown, Input>): Promise<Output> => {
 			// 成功回调中抛出的业务错误不会进入同一组失败回调，因此先完成 pending 和 Loading 清理。
 			removePendingRequest(pendingKey, pendingCancel);
-			if (options.loading) fastAxios.loading.close(options);
+			closeLoading();
 
-			const customResponse = fastAxios.interceptors.response(response, options);
+			if (cacheHit !== undefined) return cacheHit.value as Output;
+
+			const customResponse = await fastAxios.interceptors.response(response, options);
 			// 非空自定义结果表示 Fast 项目已经完整接管响应，不再执行文件、RESTful、解密和缓存流程。
 			if (customResponse !== null && customResponse !== undefined) {
 				return customResponse as Output;
@@ -335,7 +369,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 
 			// method: download 是 uni adapter 的下载标记；Fast.NET 业务类型和显式 Blob 同样进入文件响应流程。
 			const isDownload =
-				method === "DOWNLOAD" ||
+				(response.config.method ?? method).toUpperCase() === "DOWNLOAD" ||
 				options.requestType === "download" ||
 				options.requestType === "export" ||
 				response.config.responseType === "blob";
@@ -343,7 +377,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 				// 自定义 validateStatus 可能允许非 2xx 文件响应，因此文件流程仍需单独校验成功区间。
 				if (response.status < 200 || response.status > 299) {
 					const message = fastAxios.errorCode["fileDownloadError"] ?? "文件下载失败或文件不存在。";
-					fastAxios.message.error(message);
+					if (options.showErrorMessage) fastAxios.message.error(message);
 					throw new AxiosError(message, AxiosError.ERR_BAD_RESPONSE, response.config, response.request, response);
 				}
 
@@ -359,7 +393,12 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 
 			// JSON 响应先按服务端原始结构校验 Fast code/success，再交给项目解密器转换内容。
 			let responseData: unknown = response.data;
-			if (options.restfulResult) {
+			if (options.restfulResult && responseData !== null && responseData !== undefined) {
+				if (typeof responseData !== "object" || Array.isArray(responseData)) {
+					const message = "RESTful 响应必须是对象或空响应。";
+					if (options.showCodeMessage) fastAxios.message.error(message);
+					throw new AxiosError(message, AxiosError.ERR_BAD_RESPONSE, response.config, response.request, response);
+				}
 				const restfulData = responseData as ApiResponse<Output, Input>;
 				const code = restfulData.code ?? response.status;
 				if (code < 200 || code > 299 || restfulData.success === false) {
@@ -375,16 +414,30 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 			// 默认解密器返回 response.data；自定义解密器必须返回后续拆包需要处理的完整响应体。
 			if (options.requestCipher) responseData = fastAxios.crypto.decrypt(response, options);
 			// 只有 RESTful + 简洁模式提取 data；其他 JSON 请求保持完整响应体结构。
-			const result = options.restfulResult && options.simpleDataFormat ? (responseData as ApiResponse<Output, Input>).data : responseData;
+			if (
+				options.restfulResult &&
+				responseData !== null &&
+				responseData !== undefined &&
+				(typeof responseData !== "object" || Array.isArray(responseData))
+			) {
+				const message = "解密后的 RESTful 响应必须是对象或空响应。";
+				if (options.showCodeMessage) fastAxios.message.error(message);
+				throw new AxiosError(message, AxiosError.ERR_BAD_RESPONSE, response.config, response.request, response);
+			}
+			// 空响应原样返回，不能通过属性访问把 null/undefined 转成 SDK 内部异常。
+			const result =
+				options.restfulResult && options.simpleDataFormat && responseData != null
+					? (responseData as ApiResponse<Output, Input>).data
+					: responseData;
 
 			// 缓存最终 result，而不是未解密响应，确保缓存命中与首次请求返回完全一致。
-			if (cacheKey) fastAxios.cache.set(cacheKey, result);
+			if (cacheKey && cacheGeneration === fastAxios.cache.generation) fastAxios.cache.set(cacheKey, result);
 			return result as Output;
 		}) as unknown as NonNullable<Parameters<typeof instance.interceptors.response.use>[0]>,
 		async (error: unknown) => {
 			// 请求配置、adapter 和 HTTP 状态错误统一进入失败回调，并与成功回调对称释放公共状态。
 			removePendingRequest(pendingKey, pendingCancel);
-			if (options.loading) fastAxios.loading.close(options);
+			closeLoading();
 
 			if (!axios.isAxiosError<unknown, Input>(error)) {
 				// 非 AxiosError 通常来自请求处理器或 adapter 外部代码，保持原值交给调用方或全局异常处理器。
@@ -396,13 +449,14 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 				throw error;
 			}
 
-			if (typeof globalThis.navigator !== "undefined" && !globalThis.navigator.onLine) {
+			const online: unknown = typeof globalThis.navigator === "undefined" ? undefined : globalThis.navigator.onLine;
+			if (online === false) {
 				// 浏览器明确报告离线时优先展示离线提示，不再使用普通网关错误覆盖它。
-				fastAxios.message.error(fastAxios.errorCode["offLine"] ?? "当前网络不可用。");
+				if (options.showErrorMessage) fastAxios.message.error(fastAxios.errorCode["offLine"] ?? "当前网络不可用。");
 				throw error;
 			}
 
-			const customError = fastAxios.interceptors.responseError(error, options);
+			const customError = await fastAxios.interceptors.responseError(error, options);
 			if (customError !== null && customError !== undefined) {
 				// Fast 项目可以替换错误；非 Error 返回值统一包装，保证调用方 catch 始终收到错误对象。
 				if (customError instanceof Error) throw customError;
@@ -416,7 +470,12 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 	);
 
 	// 响应拦截器已经完成业务转换；这里仅收窄 Axios 条件返回类型，直接把原请求 Promise 返回给调用方。
-	return instance<unknown, Output, Input>(options) as Promise<Output>;
+	try {
+		return (await instance<unknown, Output, Input>(options)) as Output;
+	} finally {
+		removePendingRequest(pendingKey, pendingCancel);
+		closeLoading();
+	}
 };
 
 export const axiosUtil = {

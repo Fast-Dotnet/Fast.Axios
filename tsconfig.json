@@ -12,7 +12,7 @@
 		"moduleResolution": "Bundler",
 		// 工具链和 unplugin 入口会使用 node: 模块，因此在统一配置中加载 Node.js 类型。
 		"types": ["node"],
-		// 启用全部严格类型检查。
+		// 启用 strict 选项族；额外检查及单项覆盖由下方选项决定。
 		"strict": true,
 		// 派生类覆盖成员时必须显式使用 override。
 		"noImplicitOverride": true,
@@ -38,6 +38,6 @@
 	},
 	// 同一配置覆盖 SDK 源码、unplugin 构建入口和 tsdown 构建配置。
 	"include": ["src", "tsdown.config.ts"],
-	// 排除依赖、发布产物和覆盖率结果。
+	// 排除依赖和发布产物。
 	"exclude": ["node_modules", "dist"]
 }

@@ -1,8 +1,8 @@
 import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import type { FastAxiosRequestConfig } from "./options";
 
-/** Fast 项目级请求前置处理函数，可直接修改即将发送的请求配置。 */
-type InterceptorsRequestHandle = <Input = unknown>(config: InternalAxiosRequestConfig<Input>) => void;
+/** Fast 项目级请求前置处理函数；支持异步，完成后才执行缓存、去重和发送。 */
+type InterceptorsRequestHandle = <Input = unknown>(config: InternalAxiosRequestConfig<Input>) => void | Promise<void>;
 /** 为请求前置处理函数附加实现替换入口。 */
 interface InterceptorsRequestUseHandle {
 	/** 使用新的请求前置处理函数替换当前实现。 */
@@ -30,6 +30,7 @@ interface InterceptorsResponseErrorUseHandle {
  * Fast 项目级请求处理器，不替代 Axios 实例自己的拦截器链。
  *
  * 每类处理器只保留一个当前实现；重复调用 `.use()` 会用新函数替换旧函数。
+ * 请求流程会等待三类处理器；响应处理器的 Promise 解析为 null/undefined 时继续默认处理，拒绝时向调用方传播。
  */
 export class InterceptorsManage {
 	/** 当前实际执行的三个项目级处理函数。 */
@@ -65,8 +66,8 @@ export class InterceptorsManage {
 		// 对外函数引用保持不变，每次调用都转发给最新注册的请求处理函数。
 		const requestProxy: InterceptorsRequestHandle & InterceptorsRequestUseHandle = <Input = unknown>(
 			config: InternalAxiosRequestConfig<Input>
-		): void => {
-			this._handle.request(config);
+		): void | Promise<void> => {
+			return this._handle.request(config);
 		};
 		// 重复调用 use() 时以最后一次注册的函数为准，不叠加执行链。
 		requestProxy.use = (fn: InterceptorsRequestHandle): void => {

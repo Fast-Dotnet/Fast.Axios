@@ -1,18 +1,20 @@
-<p align="left">
-	<a href="./README.zh.md">简体中文</a> | <strong>English</strong>
-</p>
+[简体中文](./README.zh.md) | **English**
 
 <p align="center">
-	<img src="./Fast.png" alt="logo" width="160" />
+	<img src="./Fast.png" width="128" alt="Fast.Axios Logo" />
 </p>
 
-# @fast-china/axios
+<h1 align="center">Fast.Axios</h1>
 
-**[Documentation](http://docs.fastdotnet.cn/axios/) · [Official website](http://fastdotnet.com)**
+<p align="center">
+	<a href="https://www.npmjs.com/package/@fast-china/axios"><img src="https://img.shields.io/npm/v/@fast-china/axios?logo=npm" alt="npm version" /></a>
+	<a href="https://www.npmjs.com/package/@fast-china/axios"><img src="https://img.shields.io/npm/dm/@fast-china/axios" alt="npm downloads" /></a>
+	<a href="./LICENSE"><img src="https://img.shields.io/npm/l/@fast-china/axios" alt="License" /></a>
+</p>
 
-A typed Axios request library for Fast applications, browsers, and uni-app, with Fast.NET response handling, a uni-app adapter, and mini-program build plugins.
+An Axios-based request SDK with Fast response handling, extensible handlers and uni-app adapters.
 
-[![npm version](https://img.shields.io/npm/v/@fast-china/axios?color=orange)](https://www.npmjs.com/package/@fast-china/axios) [![node](https://img.shields.io/badge/node-%5E22.18%20%7C%7C%20%5E24.18-brightgreen)](https://nodejs.org/) [![axios](https://img.shields.io/badge/axios-%5E1.8.1-5a29e4)](https://axios-http.com/) [![license](https://img.shields.io/npm/l/@fast-china/axios)](./LICENSE)
+**[Documentation](http://docs.fastdotnet.cn/en-US/frontend/axios/) · [Official website](http://fastdotnet.com)**
 
 ## Highlights
 
@@ -45,11 +47,16 @@ pnpm add miniprogram-formdata miniprogram-blob
 
 ### CDN
 
-The `unpkg` and `jsdelivr` fields select `dist/index.global.min.js`. Load Axios first, then access this SDK through the `FastAxios` global:
+The jsDelivr entry uses `dist/index.global.min.js`. Load Axios first, then access this SDK through the `FastAxios` global:
+
+| Resource                                     | jsDelivr                                                                            | unpkg                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `axios@1.8.1/dist/axios.min.js`              | [jsDelivr](https://cdn.jsdelivr.net/npm/axios@1.8.1/dist/axios.min.js)              | [unpkg](https://unpkg.com/axios@1.8.1/dist/axios.min.js)              |
+| `@fast-china/axios/dist/index.global.min.js` | [jsDelivr](https://cdn.jsdelivr.net/npm/@fast-china/axios/dist/index.global.min.js) | [unpkg](https://unpkg.com/@fast-china/axios/dist/index.global.min.js) |
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/axios@1.8.1/dist/axios.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@fast-china/axios@2/dist/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fast-china/axios/dist/index.global.min.js"></script>
 <script>
 	FastAxios.createFastAxios({
 		baseUrl: "https://api.example.com",
@@ -64,7 +71,7 @@ The `unpkg` and `jsdelivr` fields select `dist/index.global.min.js`. Load Axios 
 </script>
 ```
 
-The equivalent unpkg entry is `https://unpkg.com/@fast-china/axios@2/dist/index.global.min.js`. The CDN build is browser-only; uni-app and the Vite/Webpack plugins must use package-manager imports.
+The CDN build is browser-only; uni-app and the Vite/Webpack plugins must use package-manager imports.
 
 ## Quick start
 
@@ -73,12 +80,9 @@ Create the global FastAxios container once during application startup, then send
 ```ts
 import { axiosUtil, createFastAxios } from "@fast-china/axios";
 
-const fastAxios = createFastAxios({
+createFastAxios({
 	baseUrl: "https://api.example.com",
 	timeout: 30_000,
-	headers: {
-		Authorization: "Bearer <token>",
-	},
 	requestCipher: false,
 });
 
@@ -96,17 +100,20 @@ const user = await axiosUtil.request<User>({
 
 By default, `axiosUtil.request()` reads `code`, `success`, `message`, and `data` from the Fast.NET RESTful response and resolves with `data`. Disable `simpleDataFormat` or `restfulResult` on an individual request when the original structure is required.
 
-## Project handlers
+## Common usage
 
-[Full configuration and examples](http://docs.fastdotnet.cn/axios/guide.en)
+Connect project feedback through handlers without coupling the SDK to a UI library:
 
-## uni-app adapter
+```ts
+import { useFastAxios } from "@fast-china/axios";
 
-[Full configuration and examples](http://docs.fastdotnet.cn/axios/guide.en)
+const fastAxios = useFastAxios();
+fastAxios.message.error.use((message) => {
+	console.error(message);
+});
+```
 
-## Mini-program build plugins
-
-[Full configuration and examples](http://docs.fastdotnet.cn/axios/guide.en)
+Run this after the preceding `createFastAxios()` initialization. uni-app mini-programs also need the documented build plugin; installing polyfills alone does not complete integration.
 
 ## Package entries
 
@@ -121,9 +128,9 @@ Importing the package does not access `window` or `uni`. Platform APIs are acces
 
 ## Documentation
 
-- [API reference](http://docs.fastdotnet.cn/axios/api.en)
-- [uni-app adapter](http://docs.fastdotnet.cn/axios/uni-app-adapter.en)
-- [Runtime and package contract](http://docs.fastdotnet.cn/axios/runtime-contract)
+- [API reference](http://docs.fastdotnet.cn/en-US/frontend/axios/api/)
+- [uni-app adapter](http://docs.fastdotnet.cn/en-US/frontend/axios/uni-app-adapter)
+- [Runtime and package contract](http://docs.fastdotnet.cn/en-US/frontend/axios/runtime-contract)
 - [Development and release](./docs/DEVELOPMENT_RELEASE.zh-CN.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Security policy](./SECURITY.md)
@@ -137,6 +144,12 @@ pnpm install --frozen-lockfile
 pnpm check
 ```
 
-## License
+## Copyright, license and use
 
-[Apache-2.0](./LICENSE)
+Copyright © 2018-Now 小方. This project uses [Apache License 2.0](./LICENSE). Use, modification, distribution and commercial use are permitted subject to its terms.
+
+When redistributing, provide the license, mark modified files and preserve applicable copyright, attribution and supplied NOTICE information as required. This summary does not replace the license or impose additional UI attribution.
+
+Users are responsible for the legal compliance and authorization of their own modifications, deployment, data processing and operations. This reminder is not an additional license condition.
+
+Except as required by applicable law or agreed in writing, the software is provided on an "AS IS" basis. Sections 7 and 8 govern warranty disclaimers and liability limits. Providing the project does not endorse downstream activities or assume users' contractual commitments. This statement does not exclude liability that cannot lawfully be excluded.

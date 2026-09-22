@@ -1,6 +1,8 @@
 {
 	"extends": "../tsconfig.json",
 	"compilerOptions": {
+		// Node.js 22+ 测试使用 Promise.withResolvers；不改变 SDK 的 ES2022 目标。
+		"lib": ["ES2024", "DOM", "DOM.Iterable"],
 		// 类型测试直接解析源码入口，避免测试尚未构建时读取旧 dist 声明。
 		"paths": {
 			"@fast-china/axios": ["../src/index.ts"],

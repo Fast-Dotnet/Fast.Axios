@@ -1,18 +1,20 @@
-<p align="left">
-	<strong>简体中文</strong> | <a href="./README.md">English</a>
-</p>
+**简体中文** | [English](./README.md)
 
 <p align="center">
-	<img src="./Fast.png" alt="logo" width="160" />
+	<img src="./Fast.png" width="128" alt="Fast.Axios Logo" />
 </p>
 
-# @fast-china/axios
+<h1 align="center">Fast.Axios</h1>
 
-**[使用文档](http://docs.fastdotnet.cn/axios/) · [官方网站](http://fastdotnet.com)**
+<p align="center">
+	<a href="https://www.npmjs.com/package/@fast-china/axios"><img src="https://img.shields.io/npm/v/@fast-china/axios?logo=npm" alt="npm version" /></a>
+	<a href="https://www.npmjs.com/package/@fast-china/axios"><img src="https://img.shields.io/npm/dm/@fast-china/axios" alt="npm downloads" /></a>
+	<a href="./LICENSE"><img src="https://img.shields.io/npm/l/@fast-china/axios" alt="License" /></a>
+</p>
 
-面向 Fast 项目、浏览器与 uni-app 的类型化 Axios 请求库，内置 Fast.NET 响应处理、uni-app adapter 和小程序构建插件。
+基于 Axios 的请求 SDK，提供 Fast 响应处理、扩展处理器及 uni-app 网络适配。
 
-[![npm 版本](https://img.shields.io/npm/v/@fast-china/axios?color=orange)](https://www.npmjs.com/package/@fast-china/axios) [![node](https://img.shields.io/badge/node-%5E22.18%20%7C%7C%20%5E24.18-brightgreen)](https://nodejs.org/) [![axios](https://img.shields.io/badge/axios-%5E1.8.1-5a29e4)](https://axios-http.com/) [![开源协议](https://img.shields.io/npm/l/@fast-china/axios)](./LICENSE)
+**[使用文档](http://docs.fastdotnet.cn/zh-CN/frontend/axios/) · [官方网站](http://fastdotnet.com)**
 
 ## 特性
 
@@ -45,11 +47,16 @@ pnpm add miniprogram-formdata miniprogram-blob
 
 ### CDN
 
-`unpkg` 和 `jsdelivr` 字段均指向 `dist/index.global.min.js`。页面必须先加载 Axios，再通过全局变量 `FastAxios` 使用本 SDK：
+jsDelivr 入口为 `dist/index.global.min.js`。页面必须先加载 Axios，再通过全局变量 `FastAxios` 使用本 SDK：
+
+| 资源                                         | jsDelivr                                                                            | unpkg                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `axios@1.8.1/dist/axios.min.js`              | [jsDelivr](https://cdn.jsdelivr.net/npm/axios@1.8.1/dist/axios.min.js)              | [unpkg](https://unpkg.com/axios@1.8.1/dist/axios.min.js)              |
+| `@fast-china/axios/dist/index.global.min.js` | [jsDelivr](https://cdn.jsdelivr.net/npm/@fast-china/axios/dist/index.global.min.js) | [unpkg](https://unpkg.com/@fast-china/axios/dist/index.global.min.js) |
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/axios@1.8.1/dist/axios.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@fast-china/axios@2/dist/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fast-china/axios/dist/index.global.min.js"></script>
 <script>
 	FastAxios.createFastAxios({
 		baseUrl: "https://api.example.com",
@@ -64,7 +71,7 @@ pnpm add miniprogram-formdata miniprogram-blob
 </script>
 ```
 
-对应的 unpkg 地址为 `https://unpkg.com/@fast-china/axios@2/dist/index.global.min.js`。CDN 产物仅用于浏览器；uni-app 和 Vite/Webpack 插件必须使用包管理器导入。
+CDN 产物仅用于浏览器；uni-app 和 Vite/Webpack 插件必须使用包管理器导入。
 
 ## 快速开始
 
@@ -73,12 +80,9 @@ pnpm add miniprogram-formdata miniprogram-blob
 ```ts
 import { axiosUtil, createFastAxios } from "@fast-china/axios";
 
-const fastAxios = createFastAxios({
+createFastAxios({
 	baseUrl: "https://api.example.com",
 	timeout: 30_000,
-	headers: {
-		Authorization: "Bearer <token>",
-	},
 	requestCipher: false,
 });
 
@@ -96,17 +100,20 @@ const user = await axiosUtil.request<User>({
 
 `axiosUtil.request()` 默认按 Fast.NET RESTful 响应读取 `code`、`success`、`message` 和 `data`，成功时直接返回 `data`。如需原始结构，可通过单次请求选项关闭 `simpleDataFormat` 或 `restfulResult`。
 
-## 项目处理器
+## 常见用法
 
-[完整配置与示例](http://docs.fastdotnet.cn/axios/guide)
+通过处理器接入项目自己的提示组件，不让 SDK 依赖 UI 库：
 
-## uni-app adapter
+```ts
+import { useFastAxios } from "@fast-china/axios";
 
-[完整配置与示例](http://docs.fastdotnet.cn/axios/guide)
+const fastAxios = useFastAxios();
+fastAxios.message.error.use((message) => {
+	console.error(message);
+});
+```
 
-## 小程序构建插件
-
-[完整配置与示例](http://docs.fastdotnet.cn/axios/guide)
+该示例在前面的 `createFastAxios()` 初始化之后执行。uni-app 小程序还需单独配置公开构建插件；仅安装 polyfill 不等于完成接入。
 
 ## 包入口
 
@@ -121,9 +128,9 @@ const user = await axiosUtil.request<User>({
 
 ## 文档
 
-- [API 文档](http://docs.fastdotnet.cn/axios/api)
-- [uni-app adapter](http://docs.fastdotnet.cn/axios/uni-app-adapter)
-- [运行时与包契约](http://docs.fastdotnet.cn/axios/runtime-contract)
+- [API 文档](http://docs.fastdotnet.cn/zh-CN/frontend/axios/api/)
+- [uni-app adapter](http://docs.fastdotnet.cn/zh-CN/frontend/axios/uni-app-adapter)
+- [运行时与包契约](http://docs.fastdotnet.cn/zh-CN/frontend/axios/runtime-contract)
 - [开发与发布](./docs/DEVELOPMENT_RELEASE.zh-CN.md)
 - [贡献指南](./CONTRIBUTING.md)
 - [安全策略](./SECURITY.md)
@@ -137,6 +144,12 @@ pnpm install --frozen-lockfile
 pnpm check
 ```
 
-## 许可证
+## 版权、许可证与使用声明
 
-[Apache-2.0](./LICENSE)
+版权所有 © 2018-Now 小方。本项目依据 [Apache License 2.0](./LICENSE) 开源；在遵守许可证的前提下，可以使用、修改和分发本软件，包括商业使用。
+
+再分发时，应按许可证要求提供许可证副本、对修改的文件作出显著说明，并保留适用的版权和归属声明；包含需要保留的 NOTICE 信息时一并处理。本说明不替代正式许可证，也不额外要求在产品界面展示作者或项目标识。
+
+使用者应就自身使用、二次开发、部署、数据处理及运营活动遵守适用法律和第三方合法权益，自行取得依法需要的授权。上述内容为合规提醒，不构成附加许可条件。
+
+除适用法律另有规定或另有书面约定外，本软件按“原样”提供；保证排除与责任限制以许可证第 7、8 条为准。提供本项目不代表原作者为使用者的二次开发和运营活动背书，也不当然承担其对第三方作出的合同承诺。本说明不排除依法不得排除的责任。

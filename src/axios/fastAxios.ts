@@ -22,7 +22,7 @@ class FastAxios {
 	 *
 	 * 类字段已经提供默认基础配置；构造函数先合并调用方配置，再初始化错误码和全部可替换处理器。
 	 *
-	 * @param options 首次创建时需要覆盖的基础配置。
+	 * @param options - 首次创建时需要覆盖的基础配置。
 	 */
 	constructor(options: InitializeOptions = {}) {
 		this.setOptions(options);
@@ -75,7 +75,7 @@ class FastAxios {
 	 *
 	 * headers 按字段合并；其他已传入字段直接覆盖，未传入字段保持当前值。
 	 *
-	 * @param options 需要更新的基础选项。
+	 * @param options - 需要更新的基础选项。
 	 */
 	setOptions(options: InitializeOptions = {}): this {
 		// 使用 undefined 判断，允许调用方显式设置空 baseURL、0 超时或 false。
@@ -109,7 +109,7 @@ class FastAxios {
 	private _timeout = 60000;
 	/**
 	 * 超时时间，单位毫秒
-	 * @default 60000
+	 * @defaultValue `60000`
 	 */
 	get timeout(): number {
 		return this._timeout;
@@ -126,7 +126,7 @@ class FastAxios {
 	private _requestCipher = true;
 	/**
 	 * 全局请求加密和响应解密开关；单次请求的 requestCipher 具有更高优先级。
-	 * @default true
+	 * @defaultValue `true`
 	 */
 	get requestCipher(): boolean {
 		return this._requestCipher;
@@ -156,14 +156,14 @@ class FastAxios {
 	/**
 	 * 添加或覆盖单个错误码提示。
 	 *
-	 * @param key HTTP 状态码、Axios error code 或 Fast 业务 code。
-	 * @param message 展示给用户的错误提示。
+	 * @param key - HTTP 状态码、Axios error code 或 Fast 业务 code。
+	 * @param message - 展示给用户的错误提示。
 	 */
 	addErrorCode(key: CodeKeyType, message: string): FastAxios;
 	/**
 	 * 批量添加或覆盖错误码提示。
 	 *
-	 * @param codes 错误码到提示文字的映射。
+	 * @param codes - 错误码到提示文字的映射。
 	 */
 	addErrorCode(codes: Record<CodeKeyType, string>): FastAxios;
 
@@ -188,8 +188,8 @@ class FastAxios {
  * 单例模式下重复调用会把本次 options 合并到现有实例；newInstance 为 true 时返回不写入全局单例的独立配置容器。
  * `axiosUtil.request()` 始终读取全局单例，独立容器不会自动参与该请求流程。
  *
- * @param options 基础请求选项。
- * @param newInstance 是否返回独立配置容器。
+ * @param options - 基础请求选项。
+ * @param newInstance - 是否返回独立配置容器。
  * @returns 全局单例或新创建的独立实例。
  */
 export const createFastAxios = (options?: InitializeOptions, newInstance = false): FastAxios => {

@@ -49,68 +49,80 @@ export type RequestType =
 export interface AxiosOptions {
 	/**
 	 * 是否取消相同 URL、Method、参数和请求体的上一条未完成请求。
-	 * @default true
+	 * @defaultValue true
 	 */
 	cancelDuplicateRequest?: boolean;
 	/**
 	 * 是否在请求生命周期内调用全局 Loading 的 show/close 处理器。
-	 * @default false
+	 * @defaultValue false
 	 */
 	loading?: boolean;
 	/**
 	 * 传给 Loading show 处理器的提示文字。
-	 * @default '加载中...'
+	 * @defaultValue '加载中...'
 	 */
 	loadingText?: string;
 	/**
-	 * 是否读取和写入请求缓存；仅 GET + RESTful + simpleDataFormat 请求生效。
-	 * @default false
+	 * 是否读取和写入请求缓存；仅 GET + RESTful + simpleDataFormat 且已设置缓存命名空间时生效。
+	 * @defaultValue false
 	 */
 	cache?: boolean;
 	/**
 	 * 未启用请求加密时，为 GET 参数追加时间戳以绕过浏览器或代理缓存。
-	 * @default true
+	 * @defaultValue true
 	 */
 	getMethodCacheHandle?: boolean;
 	/**
 	 * 是否从 Fast RESTful 响应中直接返回 `data` 字段。
 	 *
 	 * 只对 JSON + RESTful 响应执行拆包；文件和其他响应类型保持各自返回结构。
-	 * @default true
+	 * @defaultValue true
 	 */
 	simpleDataFormat?: boolean;
 	/**
 	 * 是否通过 Message error 处理器展示 HTTP、网络和超时错误。
-	 * @default true
+	 * @defaultValue true
 	 */
 	showErrorMessage?: boolean;
 	/**
 	 * 是否展示 Fast RESTful 业务错误信息。
 	 *
 	 * code 不在 200-299 或 success 为 false 时触发。
-	 * @default true
+	 * @defaultValue true
 	 */
 	showCodeMessage?: boolean;
 	/**
 	 * 是否在浏览器收到 download/export 或 Blob 响应后自动保存文件。
 	 *
 	 * uni-app 不执行浏览器保存逻辑，调用方从响应 data 获取临时文件路径。
-	 * @default true
+	 * @defaultValue true
 	 */
 	autoDownloadFile?: boolean;
 	/**
 	 * 是否启用请求加密和响应解密，优先级高于 `createFastAxios().requestCipher`。
-	 * @default undefined
+	 * 未设置时继承全局配置，不在此声明独立默认值。
 	 */
 	requestCipher?: boolean;
 	/**
 	 * 是否按 `ApiResponse` 结构校验业务 code/success 并处理 data。
-	 * @default true
+	 * @defaultValue true
 	 */
 	restfulResult?: boolean;
 }
 
 export interface FastAxiosRequestConfig<Input = unknown> extends AxiosRequestConfig<Input>, AxiosOptions {
+	/**
+	 * 本次请求的缓存命名空间
+	 *
+	 * 未指定时使用 cache.namespace；两者均为空则跳过缓存。应包含账号、租户、语言或 Cookie 会话版本，不能使用明文凭据。
+	 */
+	cacheNamespace?: string;
+	/**
+	 * 不透明请求体的显式去重标识
+	 *
+	 * 文件、流和循环对象默认不自动去重；设置后由调用方保证相同标识表示相同操作。不可使用密码或令牌。
+	 */
+	duplicateKey?: string;
 	/**
 	 * Fast.NET OpenAPI 生成的业务请求类型。
 	 *

@@ -1,8 +1,26 @@
 # Changelog
 
-All notable changes to Fast.Axios are documented in this file.
+All notable changes to this project are documented in this file.
 
-## [Unreleased]
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases should follow [Semantic Versioning](https://semver.org/).
+
+## [2.0.5] - 2026-09-22
+
+### Fixed
+
+- Preserve URLSearchParams and repeated keys; skip automatic duplicate cancellation for opaque bodies unless an explicit duplicateKey is provided.
+- Await request/response/error hooks, preserve null responses and honor silent network/file failures.
+- Require an explicit cache namespace, hash final request identity, invalidate late writes on clear/context changes, and bound the default cache to 256 entries for five minutes. This changes cache opt-in behavior.
+- Close Loading only after the same request successfully called show, preventing a request-hook failure before show from closing another in-flight request's Loading.
+- Include per-request `baseURL` overrides in cache keys.
+- Release temporary download elements and object URLs when browser download triggering fails.
+- Treat navigator as offline only when `onLine` is explicitly false.
+
+### Documentation and Tooling
+
+- Correct localized Fast.Docs links and retain minimal README examples.
+- Align public-contract comments and agent guidance.
+- Keep ESLint and Prettier skill-file ignores separate and add regression checks.
 
 ## [2.0.4] - 2026-09-12
 
@@ -59,7 +77,7 @@ All notable changes to Fast.Axios are documented in this file.
 - Removed the duplicated nested publication package and legacy multi-tool build scripts.
 - Removed the temporary `uniTask` routing design; the original Fast method-based upload/download contract remains authoritative.
 
-[Unreleased]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.4...HEAD
+[2.0.5]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.4...v2.0.5
 [2.0.4]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.3...v2.0.4
 [2.0.3]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.2...v2.0.3
 [2.0.2]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.1...v2.0.2

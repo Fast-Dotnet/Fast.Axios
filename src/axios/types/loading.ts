@@ -29,7 +29,11 @@ export class LoadingManage {
 
 	/** 请求发送前显示 Loading。 */
 	readonly show: LoadingShowHandle & LoadingShowUseHandle;
-	/** 请求成功或失败后关闭 Loading，并接收当前 Fast 请求选项。 */
+	/**
+	 * 调用已注册的 Loading 关闭处理器。
+	 *
+	 * @remarks 请求流程负责与成功执行的 show 配对；手动调用不会验证显示状态，调用方须自行保证配对。
+	 */
 	readonly close: LoadingCloseHandle & LoadingCloseUseHandle;
 
 	/** 创建默认不操作任何 UI 的 Loading 处理器。 */
