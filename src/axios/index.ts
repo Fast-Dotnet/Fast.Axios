@@ -114,7 +114,7 @@ const normalizeMessage = (message: unknown): string | undefined => {
 		// Fast 验证错误经常是字段到错误数组的对象，需要序列化后交给 UI 组件展示。
 		return typeof message === "object" ? JSON.stringify(message) : undefined;
 	} catch {
-		return "无法序列化的错误信息";
+		return useFastAxios().t("unserializableMessage");
 	}
 };
 
@@ -143,7 +143,7 @@ const httpErrorStatusHandle = async <Input>(error: AxiosError<unknown, Input>): 
 	// 仅对象响应体可能携带 Fast code/message；字符串或二进制内容直接走错误码映射。
 	const errorBody = responseData && typeof responseData === "object" ? (responseData as { code?: string | number; message?: unknown }) : undefined;
 	const code = (errorBody?.code ?? error.response?.status ?? error.code ?? error.message) || "default";
-	return normalizeMessage(errorBody?.message) ?? fastAxios.errorCode[code] ?? fastAxios.errorCode["default"] ?? "请求失败，请稍后再试！";
+	return normalizeMessage(errorBody?.message) ?? fastAxios.errorCode[code] ?? fastAxios.errorCode["default"] ?? fastAxios.t("default");
 };
 
 /**
@@ -223,7 +223,7 @@ const resolveRequestOptions = <Input>(config: FastAxiosRequestConfig<Input>, def
 		method,
 		cancelDuplicateRequest: config.cancelDuplicateRequest ?? axiosOptions.cancelDuplicateRequest,
 		loading: config.loading ?? axiosOptions.loading,
-		loadingText: config.loadingText ?? axiosOptions.loadingText,
+		loadingText: config.loadingText ?? useFastAxios().t("loading"),
 		cache: config.cache ?? axiosOptions.cache,
 		getMethodCacheHandle: config.getMethodCacheHandle ?? axiosOptions.getMethodCacheHandle,
 		simpleDataFormat: config.simpleDataFormat ?? axiosOptions.simpleDataFormat,
@@ -369,7 +369,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 			if (isDownload) {
 				// 自定义 validateStatus 可能允许非 2xx 文件响应，因此文件流程仍需单独校验成功区间。
 				if (response.status < 200 || response.status > 299) {
-					const message = fastAxios.errorCode["fileDownloadError"] ?? "文件下载失败或文件不存在。";
+					const message = fastAxios.errorCode["fileDownloadError"] ?? fastAxios.t("fileDownloadError");
 					if (options.showErrorMessage) fastAxios.message.error(message);
 					throw new AxiosError(message, AxiosError.ERR_BAD_RESPONSE, response.config, response.request, response);
 				}
@@ -388,7 +388,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 			let responseData: unknown = response.data;
 			if (options.restfulResult && responseData !== null && responseData !== undefined) {
 				if (typeof responseData !== "object" || Array.isArray(responseData)) {
-					const message = "RESTful 响应必须是对象或空响应。";
+					const message = fastAxios.t("invalidResponse");
 					if (options.showCodeMessage) fastAxios.message.error(message);
 					throw new AxiosError(message, AxiosError.ERR_BAD_RESPONSE, response.config, response.request, response);
 				}
@@ -396,7 +396,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 				const code = restfulData.code ?? response.status;
 				if (code < 200 || code > 299 || restfulData.success === false) {
 					// 服务端 message 优先于本地 code 映射，确保业务接口的具体错误能够展示给用户。
-					const message = normalizeMessage(restfulData.message) ?? fastAxios.errorCode[code] ?? "服务器内部错误！";
+					const message = normalizeMessage(restfulData.message) ?? fastAxios.errorCode[code] ?? fastAxios.t("500");
 					if (options.showCodeMessage) fastAxios.message.error(message);
 
 					const apiError = new AxiosError(message, AxiosError.ERR_BAD_RESPONSE, response.config, response.request, response);
@@ -413,7 +413,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 				responseData !== undefined &&
 				(typeof responseData !== "object" || Array.isArray(responseData))
 			) {
-				const message = "解密后的 RESTful 响应必须是对象或空响应。";
+				const message = fastAxios.t("invalidDecryptedResponse");
 				if (options.showCodeMessage) fastAxios.message.error(message);
 				throw new AxiosError(message, AxiosError.ERR_BAD_RESPONSE, response.config, response.request, response);
 			}
@@ -445,7 +445,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 			const online: unknown = typeof globalThis.navigator === "undefined" ? undefined : globalThis.navigator.onLine;
 			if (online === false) {
 				// 浏览器明确报告离线时优先展示离线提示，不再使用普通网关错误覆盖它。
-				if (options.showErrorMessage) fastAxios.message.error(fastAxios.errorCode["offLine"] ?? "当前网络不可用。");
+				if (options.showErrorMessage) fastAxios.message.error(fastAxios.errorCode["offLine"] ?? fastAxios.t("offLine"));
 				throw error;
 			}
 
@@ -453,7 +453,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 			if (customError !== null && customError !== undefined) {
 				// Fast 项目可以替换错误；非 Error 返回值统一包装，保证调用方 catch 始终收到错误对象。
 				if (customError instanceof Error) throw customError;
-				throw new AxiosError(normalizeMessage(customError) ?? "自定义错误处理器返回了无效错误。", AxiosError.ERR_BAD_RESPONSE);
+				throw new AxiosError(normalizeMessage(customError) ?? fastAxios.t("invalidCustomError"), AxiosError.ERR_BAD_RESPONSE);
 			}
 
 			// 未被自定义错误处理器接管时，按开关展示统一 HTTP/网络错误信息。
@@ -488,3 +488,5 @@ export const axiosUtil = {
 
 export type * from "./types/options";
 export * from "./fastAxios";
+
+export type { FastAxiosLocale, FastAxiosLocaleSource, FastAxiosMessageKey, FastAxiosTranslate } from "./locale";

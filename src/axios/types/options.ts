@@ -58,8 +58,11 @@ export interface AxiosOptions {
 	 */
 	loading?: boolean;
 	/**
-	 * 传给 Loading show 处理器的提示文字。
-	 * @defaultValue '加载中...'
+	 * Loading 提示文字
+	 *
+	 * 未指定时跟随容器语言，显式空字符串是有效文案。
+	 *
+	 * @defaultValue 当前语言的内建文案，简体中文为 `"加载中..."`
 	 */
 	loadingText?: string;
 	/**

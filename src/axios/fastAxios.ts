@@ -1,9 +1,10 @@
-import { AxiosError } from "axios";
+import { defaultErrorMessages, resolveLocale, translateMessage } from "./locale";
 import { CacheManage, CryptoManage, InterceptorsManage, LoadingManage, MessageBoxManage, MessageManage } from "./types";
 import type { RawAxiosHeaders } from "axios";
+import type { FastAxiosLocaleSource, FastAxiosMessageKey, FastAxiosTranslate } from "./locale";
 
-/** `createFastAxios()` 和 `setOptions()` 允许更新的全局基础配置。 */
-type InitializeOptions = Partial<Pick<FastAxios, "baseUrl" | "timeout" | "headers" | "requestCipher">>;
+/** `createFastAxios()` 和 `setOptions()` 支持的基础与国际化配置 */
+type InitializeOptions = Partial<Pick<FastAxios, "baseUrl" | "timeout" | "headers" | "requestCipher" | "locale" | "translate">>;
 
 /** 错误提示表允许同时使用 HTTP 数字状态码和 Axios/Fast 字符串错误码。 */
 type CodeKeyType = string | number;
@@ -28,54 +29,34 @@ class FastAxios {
 		this.setOptions(options);
 
 		// 默认错误表同时覆盖 Fast 业务提示、HTTP 状态、Axios 错误码和 uni.request 通用失败文本。
-		this.errorCode = {
-			// Fast 请求流程内部使用的通用提示。
-			default: "请求失败，请稍后再试！",
-			cancelDuplicate: "重复请求，自动取消！",
-			offLine: "您断网了！",
-			fileDownloadError: "文件下载失败或此文件不存在！",
-			// 常见 HTTP 响应状态码提示。
-			302: "接口重定向了！",
-			400: "参数不正确！",
-			401: "您没有权限操作（令牌、用户名、密码错误）！",
-			403: "您的访问是被禁止的！",
-			404: "请求的资源不存在！",
-			405: "请求的格式不正确！",
-			408: "请求超时！",
-			409: "系统已存在相同数据！",
-			410: "请求的资源被永久删除，且不会再得到的！",
-			422: "当创建一个对象时，发生一个验证错误！",
-			429: "请求过于频繁，请稍后再试！",
-			500: "服务器内部错误！",
-			501: "服务未实现！",
-			502: "网关错误！",
-			503: "服务不可用，服务器暂时过载或维护！",
-			504: "服务暂时无法访问，请稍后再试！",
-			505: "HTTP版本不受支持！",
-			// Axios adapter 和取消流程产生的标准错误码提示。
-			[AxiosError.ETIMEDOUT]: "请求超时！",
-			[AxiosError.ERR_CANCELED]: "连接已被取消！",
-			[AxiosError.ECONNABORTED]: "连接中断，服务器暂时过载或维护！",
-			[AxiosError.ERR_NETWORK]: "网关错误，服务不可用，服务器暂时过载或维护！",
-			// 部分 uni-app 平台只返回 request:fail，不提供更具体的网络错误码。
-			"request:fail": "网关错误，服务不可用，服务器暂时过载或维护！",
-		};
+		this.errorCode = { ...defaultErrorMessages };
+		for (const key of Object.keys(defaultErrorMessages) as (keyof typeof defaultErrorMessages)[]) {
+			Object.defineProperty(this.errorCode, key, {
+				enumerable: true,
+				configurable: true,
+				get: () => this.t(key),
+				set: (value: string) => {
+					// 显式赋值替换当前键的动态读取逻辑，保留 errorCode 和 addErrorCode 的既有可写合同。
+					Object.defineProperty(this.errorCode, key, { value, writable: true, enumerable: true, configurable: true });
+				},
+			});
+		}
 
 		// 每个管理器都提供默认行为，并允许 Fast 项目通过 `.use()` 单独替换具体处理函数。
 		this.loading = new LoadingManage();
 		this.message = new MessageManage();
-		this.messageBox = new MessageBoxManage();
+		this.messageBox = new MessageBoxManage((key) => this.t(key));
 		this.cache = new CacheManage();
 		this.crypto = new CryptoManage();
 		this.interceptors = new InterceptorsManage();
 	}
 
 	/**
-	 * 合并基础选项并返回当前实例，适合在应用启动或登录状态变化后更新公共请求配置。
+	 * 合并基础与国际化配置并返回当前实例。
 	 *
 	 * headers 按字段合并；其他已传入字段直接覆盖，未传入字段保持当前值。
 	 *
-	 * @param options - 需要更新的基础选项。
+	 * @param options - 需要更新的配置
 	 */
 	setOptions(options: InitializeOptions = {}): this {
 		// 使用 undefined 判断，允许调用方显式设置空 baseURL、0 超时或 false。
@@ -95,6 +76,8 @@ class FastAxios {
 		if (options.requestCipher !== undefined) {
 			this._requestCipher = options.requestCipher;
 		}
+		if (options.locale !== undefined) this.locale = options.locale;
+		if (options.translate !== undefined) this.translate = options.translate;
 		return this;
 	}
 
@@ -132,7 +115,40 @@ class FastAxios {
 		return this._requestCipher;
 	}
 
-	/** HTTP 状态码、Axios error code 和 Fast 业务 code 对应的默认中文提示。 */
+	/**
+	 * SDK 文案语言
+	 *
+	 * 传入函数时，每次读取文案都会调用该函数；不支持的语言或读取异常均回退到简体中文。
+	 *
+	 * @defaultValue `"zh-CN"`
+	 */
+	locale: FastAxiosLocaleSource = "zh-CN";
+
+	/**
+	 * 应用翻译回调
+	 *
+	 * 设为 `null` 可恢复内建文案，不影响显式错误码覆盖。
+	 *
+	 * @defaultValue `null`
+	 */
+	translate: FastAxiosTranslate | null = null;
+
+	/**
+	 * 返回当前语言的 SDK 文案；翻译回调未提供译文或抛出异常时，使用内建文案。
+	 *
+	 * 此方法不读取 `addErrorCode()` 或直接赋值的覆盖；需要最终错误码提示时，应读取 `errorCode[code]`。
+	 *
+	 * @param key - SDK 内建文案键
+	 */
+	t(key: FastAxiosMessageKey): string {
+		return translateMessage(key, resolveLocale(this.locale), this.translate);
+	}
+
+	/**
+	 * 错误码提示表
+	 *
+	 * 内建键在读取时解析语言；显式赋值或 `addErrorCode()` 的覆盖优先，切换语言不会清除这些覆盖。
+	 */
 	readonly errorCode: Record<CodeKeyType, string>;
 
 	/** Loading 处理器；并发请求的计数或队列策略由 Fast 项目注册的实现负责。 */

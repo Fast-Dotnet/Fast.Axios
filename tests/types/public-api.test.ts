@@ -1,7 +1,11 @@
 // 本文件只参与 TypeScript 编译，用于验证消费者可见的根入口、子路径和 Axios 类型扩展。
 import {
 	type ApiResponse,
+	type FastAxiosLocale,
+	type FastAxiosLocaleSource,
+	type FastAxiosMessageKey,
 	type FastAxiosRequestConfig,
+	type FastAxiosTranslate,
 	type RequestType,
 	type UniAppRequestOptions,
 	type UniAppUploadFile,
@@ -34,6 +38,20 @@ const requestConfig: FastAxiosRequestConfig<CreateUserInput> = {
 };
 
 const isolated = createFastAxios({ baseUrl: "https://api.example.com", requestCipher: false }, true);
+const locale: FastAxiosLocale = "zh-TW";
+const localeSource: FastAxiosLocaleSource = () => locale;
+const translate: FastAxiosTranslate = (key, language, fallback) => {
+	const messageKey: FastAxiosMessageKey = key;
+	return messageKey === "loading" && language === "zh-TW" ? "載入中" : fallback;
+};
+isolated.setOptions({ locale: localeSource, translate }).setOptions({ locale: "en-US", translate: null });
+const translated: string = isolated.t("loading");
+// @ts-expect-error 静态语言配置限定为内建三种语言
+isolated.setOptions({ locale: "fr-FR" });
+// @ts-expect-error 翻译回调必须同步返回文案
+isolated.setOptions({ translate: () => Promise.resolve("loading") });
+// @ts-expect-error SDK 文案键不能任意拼写
+isolated.t("missingMessage");
 isolated.interceptors.request.use((config) => {
 	config.headers.set("X-Test", "public-api");
 });
@@ -59,6 +77,7 @@ export {
 	missingRequestType,
 	requestResult,
 	requestType,
+	translated,
 	uniOptions,
 	unsupportedRequestType,
 	uploadResult,

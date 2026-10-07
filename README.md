@@ -153,3 +153,12 @@ When redistributing, provide the license, mark modified files and preserve appli
 Users are responsible for the legal compliance and authorization of their own modifications, deployment, data processing and operations. This reminder is not an additional license condition.
 
 Except as required by applicable law or agreed in writing, the software is provided on an "AS IS" basis. Sections 7 and 8 govern warranty disclaimers and liability limits. Providing the project does not endorse downstream activities or assume users' contractual commitments. This statement does not exclude liability that cannot lawfully be excluded.
+
+## Internationalization
+
+Simplified Chinese (`zh-CN`) is the default; Traditional Chinese (`zh-TW`) and English (`en-US`) are also built in. Supply a locale getter to follow your application language, or a synchronous `translate(key, locale, fallback)` callback to use your own translations. Return `null` / `undefined` to use built-in text. Explicit text and server messages take precedence; original Axios errors, codes, and cancellation semantics are preserved.
+
+```ts
+const fastAxios = createFastAxios({ locale: "zh-CN" });
+fastAxios.setOptions({ locale: "en-US" });
+```

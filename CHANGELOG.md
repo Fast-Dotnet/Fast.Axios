@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases should follow [Semantic Versioning](https://semver.org/).
 
+## [2.0.7] - 2026-10-07
+
+### Added
+
+- Support Simplified Chinese (default), Traditional Chinese, and English SDK messages, with dynamic locale selection and an application translation callback.
+- Localize built-in error hints, Loading text, and confirmation dialogs while retaining explicit overrides, server messages, Axios error codes, original errors, cancellation, and Promise rejection semantics.
+- Keep built-in modal button text within the documented four-character mini-program limit and verify localization without optional browser APIs or Intl.
+
 ## [2.0.6] - 2026-10-07
 
 ### Fixed
@@ -89,6 +97,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Removed the duplicated nested publication package and legacy multi-tool build scripts.
 - Removed the temporary `uniTask` routing design; the original Fast method-based upload/download contract remains authoritative.
 
+[2.0.7]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.6...v2.0.7
 [2.0.6]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.5...v2.0.6
 [2.0.5]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.4...v2.0.5
 [2.0.4]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.3...v2.0.4

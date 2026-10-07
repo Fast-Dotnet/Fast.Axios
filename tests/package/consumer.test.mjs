@@ -148,6 +148,8 @@ try {
 		assert.equal(typeof cdnContext.FastAxios.createUniAppAxiosAdapter, "function");
 		assert.equal(typeof cdnContext.FastAxios.axiosUtil.request, "function");
 		assert.equal(cdnContext.FastAxios.createFastAxios({ requestCipher: false }, true).requestCipher, false);
+		assert.equal(cdnContext.FastAxios.createFastAxios({ locale: "en-US" }, true).t("loading"), "Loading...");
+		assert.equal(cdnContext.FastAxios.createFastAxios({ locale: "zh-TW" }, true).errorCode[408], "請求逾時！");
 	});
 
 	await test("strict consumer declarations and ESM entry resolution", async () => {
@@ -161,6 +163,8 @@ try {
 				'if (typeof vitePlugin !== "function" || typeof webpackPlugin !== "function") throw new Error("Build plugin entry failed.");',
 				"const isolated = createFastAxios({ requestCipher: false }, true);",
 				'if (isolated.requestCipher !== false) throw new Error("Root runtime entry failed.");',
+				'isolated.setOptions({ locale: "en-US" });',
+				'if (isolated.t("loading") !== "Loading...") throw new Error("Locale runtime entry failed.");',
 				"const instance = axios.create({ adapter: createUniAppAxiosAdapter() });",
 				'if (typeof instance.upload !== "function") throw new Error("Axios upload augmentation failed.");',
 				'if (typeof instance.download !== "function") throw new Error("Axios download augmentation failed.");',
