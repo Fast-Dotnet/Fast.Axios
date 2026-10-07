@@ -16,12 +16,12 @@ interface LoadingCloseUseHandle {
 }
 
 /**
- * 请求 Loading 生命周期处理器。
+ * 请求 Loading 生命周期处理器
  *
  * 默认实现为空；Fast 项目应通过 `.use()` 接入自己的 UI 组件，并自行处理并发请求计数。
  */
 export class LoadingManage {
-	/** 当前实际执行的显示与关闭函数。 */
+	/** 当前实际执行的显示与关闭函数 */
 	private readonly _handle: {
 		show: LoadingShowHandle;
 		close: LoadingCloseHandle;

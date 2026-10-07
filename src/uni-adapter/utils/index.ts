@@ -8,8 +8,8 @@ import type { MethodType, UniNetworkRequestWithoutCallback, UniNetworkTask, UniP
  * `upload` 和 `download` 是 Fast uni adapter 的文件任务标记；其他标准 HTTP method 均使用 `uni.request`。
  * 比较前统一转为小写，因此 Fast.NET 生成的小写值和调用方传入的大写值具有相同行为。
  *
- * @param config Axios 传给 adapter 的内部请求配置。
- * @returns `upload`、`download`，或普通 HTTP 请求对应的 `request`。
+ * @param config - Axios 传给 adapter 的内部请求配置
+ * @returns `upload`、`download`，或普通 HTTP 请求对应的 `request`
  */
 export const getMethodType = (config: InternalAxiosRequestConfig): MethodType => {
 	const method = (config.method ?? "GET").toLowerCase();
@@ -23,8 +23,8 @@ export const getMethodType = (config: InternalAxiosRequestConfig): MethodType =>
  *
  * 此阶段只做确定性的配置映射，不注册回调、不创建任务，也不修改传入的 config。
  *
- * @param config 已经过 Axios 默认值合并、请求拦截器和 transformRequest 的内部配置。
- * @returns 包含最终 URL、纯对象请求头、转换后数据及全部 uni-app 平台选项的新对象。
+ * @param config - 已经过 Axios 默认值合并、请求拦截器和 transformRequest 的内部配置
+ * @returns 包含最终 URL、纯对象请求头、转换后数据及全部 uni-app 平台选项的新对象
  * @throws AxiosError Basic Auth 无法编码时抛出 `ERR_BAD_OPTION_VALUE`，与 Axios 内建 adapter 行为一致。
  */
 export const resolveUniAppRequestOptions = (config: InternalAxiosRequestConfig): UniNetworkRequestWithoutCallback => {
@@ -121,10 +121,10 @@ export const resolveUniAppRequestOptions = (config: InternalAxiosRequestConfig):
  *
  * 此函数不处理 HTTP 状态错误；uni 会把收到 4xx/5xx 的请求放在 success 回调，由 `settle` 负责判断。
  *
- * @param message uni-app `fail` 返回的 errMsg；不同平台可能在固定前缀后追加详细文本。
- * @param config 当前 Axios 内部请求配置，用于错误上下文和超时兼容选项。
- * @param task 发生错误的任务实例；任务尚未赋值或已清理时可能为 null。
- * @returns 带标准 Axios code、config 和 request 上下文的 AxiosError。
+ * @param message - uni-app `fail` 返回的 errMsg；不同平台可能在固定前缀后追加详细文本。
+ * @param config - 当前 Axios 内部请求配置，用于错误上下文和超时兼容选项。
+ * @param task - 发生错误的任务实例；任务尚未赋值或已清理时可能为 null。
+ * @returns 带标准 Axios code、config 和 request 上下文的 AxiosError
  */
 export const createUniAppError = (message: string, config: InternalAxiosRequestConfig, task: UniNetworkTask | null): AxiosError => {
 	// 平台错误文本大小写可能不同，统一转小写后使用包含判断，兼容 errMsg 后追加详细原因的情况。
@@ -148,9 +148,9 @@ export const createUniAppError = (message: string, config: InternalAxiosRequestC
  *
  * 实现与 Axios 内部 settle 语义一致，但保留在本目录内，避免依赖未承诺稳定性的 `axios/unsafe/*` 路径。
  *
- * @param resolve adapter Promise 的成功函数，通过校验时返回完整响应。
- * @param reject adapter Promise 的拒绝函数，未通过校验时返回包含 response 的 AxiosError。
- * @param response 已包含 status、headers、config 和原始 task 的 Axios 响应。
+ * @param resolve - adapter Promise 的成功函数，通过校验时返回完整响应。
+ * @param reject - adapter Promise 的拒绝函数，未通过校验时返回包含 response 的 AxiosError。
+ * @param response - 已包含 status、headers、config 和原始 task 的 Axios 响应
  */
 export const settle = (resolve: (response: AxiosResponse) => void, reject: (reason?: unknown) => void, response: AxiosResponse): void => {
 	const { validateStatus } = response.config;
@@ -173,9 +173,9 @@ export const settle = (resolve: (response: AxiosResponse) => void, reject: (reas
  * Axios XHR adapter 的进度事件字段语义参考：
  * https://github.com/axios/axios/blob/7d45ab2e2ad6e59f5475e39afd4b286b1f393fc0/lib/adapters/xhr.js#L17-L44
  *
- * @param listener Axios `onUploadProgress` 或 `onDownloadProgress`，每次 uni 进度通知调用一次。
- * @param type 用于选择 `upload: true` 或 `download: true` 标记，不参与字节字段识别。
- * @returns 可注册到 UploadTask/DownloadTask `onProgressUpdate` 的回调。
+ * @param listener - Axios `onUploadProgress` 或 `onDownloadProgress`，每次 uni 进度通知调用一次。
+ * @param type - 用于选择 `upload: true` 或 `download: true` 标记，不参与字节字段识别。
+ * @returns 可注册到 UploadTask/DownloadTask `onProgressUpdate` 的回调
  */
 export const progressEventReducer = (
 	listener: (progressEvent: AxiosProgressEvent) => void,

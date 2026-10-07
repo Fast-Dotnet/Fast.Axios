@@ -3,7 +3,7 @@ import type { FastAxiosMessageKey } from "../locale";
 
 /** 确认框调用参数，由错误提示和业务确认流程共同使用。 */
 interface MessageBoxOptions {
-	/** 确认框正文。 */
+	/** 确认框正文 */
 	message: string;
 	/** 交给自定义确认框处理器的视觉类型；原生 confirm/showModal 不使用该字段。 */
 	type?: "success" | "warning" | "info" | "error";
@@ -29,12 +29,12 @@ interface MessageBoxUseHandle {
 }
 
 /**
- * 跨浏览器和 uni-app 的确认框处理器。
+ * 跨浏览器和 uni-app 的确认框处理器
  *
  * 用户确认时 Promise resolve，用户取消或平台 API 调用失败时 Promise reject。
  */
 export class MessageBoxManage {
-	/** 当前实际执行的确认框函数。 */
+	/** 当前实际执行的确认框函数 */
 	private readonly _handle: {
 		confirm: MessageBoxHandle;
 	};

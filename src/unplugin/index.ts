@@ -4,29 +4,19 @@ import { cwd, env } from "node:process";
 import { createUnplugin } from "unplugin";
 import type { TransformResult } from "unplugin";
 
-/**
- * Axios 浏览器平台的 FormData 适配模块。
- */
+// Axios 浏览器平台的 FormData 适配模块
 const axiosFormDataModule = "axios/lib/platform/browser/classes/FormData.js";
 
-/**
- * Axios 浏览器平台的 Blob 适配模块。
- */
+// Axios 浏览器平台的 Blob 适配模块
 const axiosBlobModule = "axios/lib/platform/browser/classes/Blob.js";
 
-/**
- * form-data 包提供的浏览器入口模块。
- */
+// form-data 包提供的浏览器入口模块
 const formDataBrowserModule = "form-data/lib/browser.js";
 
-/**
- * 小程序 FormData 兼容包名称。
- */
+// 小程序 FormData 兼容包名称
 const miniprogramFormDataPackage = "miniprogram-formdata";
 
-/**
- * 小程序 Blob 兼容包名称。
- */
+// 小程序 Blob 兼容包名称
 const miniprogramBlobPackage = "miniprogram-blob";
 
 /**
@@ -45,14 +35,10 @@ const targetModuleFilters: RegExp[] = [
 	/(?:^|[/\\])form-data[/\\]lib[/\\]browser\.js(?:\?.*)?$/,
 ];
 
-/**
- * 支持的小程序兼容对象名称。
- */
+// 支持的小程序兼容对象名称
 type PolyfillFeature = "Blob" | "FormData";
 
-/**
- * 从项目目录创建的 CommonJS require 实例。
- */
+// 从项目目录创建的 CommonJS require 实例
 type ProjectRequire = ReturnType<typeof createRequire>;
 
 /**
@@ -77,14 +63,13 @@ const isMiniProgramBuild = (): boolean => env["UNI_PLATFORM"]?.startsWith("mp-")
  * 1. 移除 Vite、Rollup 等构建工具附加的查询参数。
  * 2. 将 Windows 路径分隔符统一转换为 `/`。
  *
- * @param id 构建工具传入的原始模块 ID。
- * @returns 标准化后的模块路径。
+ * @param id - 构建工具传入的原始模块 ID
+ * @returns 标准化后的模块路径
  */
 const normalizeModuleId = (id: string): string => {
 	const queryIndex = id.indexOf("?");
 	const cleanId = queryIndex === -1 ? id : id.slice(0, queryIndex);
 
-	// 使用正则替换而不是 replaceAll，避免对 ES2021 运行时产生额外要求。
 	return cleanId.replace(/\\/g, "/");
 };
 
@@ -98,8 +83,8 @@ const normalizeModuleId = (id: string): string => {
  * - workspace 链接目录
  * - 构建工具生成的绝对路径
  *
- * @param normalizedId 已标准化的模块 ID。
- * @param modulePath 目标模块在包内的相对路径。
+ * @param normalizedId - 已标准化的模块 ID
+ * @param modulePath - 目标模块在包内的相对路径
  * @returns 模块匹配时返回 `true`。
  */
 const matchesModule = (normalizedId: string, modulePath: string): boolean => normalizedId === modulePath || normalizedId.endsWith(`/${modulePath}`);
@@ -110,9 +95,9 @@ const matchesModule = (normalizedId: string, modulePath: string): boolean => nor
  * 此检查从应用项目的当前工作目录开始，而不是从插件自身所在目录开始，
  * 从而要求使用者在应用项目中显式安装对应兼容包。
  *
- * @param requireFromProject 从应用项目目录创建的 require 实例。
- * @param feature 当前需要兼容的功能名称。
- * @param packageName 对应的兼容包名称。
+ * @param requireFromProject - 从应用项目目录创建的 require 实例
+ * @param feature - 当前需要兼容的功能名称
+ * @param packageName - 对应的兼容包名称
  *
  * @throws 当应用项目无法解析对应兼容包时抛出构建错误。
  */
@@ -139,9 +124,9 @@ const assertPackageAvailable = (requireFromProject: ProjectRequire, feature: Pol
  * export default FormData;
  * ```
  *
- * @param feature 需要导出的兼容对象名称。
- * @param packageName 兼容对象所属的包名称。
- * @returns 可直接返回给构建工具的模块转换结果。
+ * @param feature - 需要导出的兼容对象名称
+ * @param packageName - 兼容对象所属的包名称
+ * @returns 可直接返回给构建工具的模块转换结果
  */
 const createPolyfillModule = (feature: PolyfillFeature, packageName: string): TransformResult => ({
 	code: [`import ${feature} from ${JSON.stringify(packageName)};`, "", `export default ${feature};`, ""].join("\n"),
@@ -153,7 +138,7 @@ const createPolyfillModule = (feature: PolyfillFeature, packageName: string): Tr
  *
  * @remarks
  *
- * 插件仅在 `UNI_PLATFORM` 以 `mp` 开头时生效，主要完成以下处理：
+ * 插件仅在 `UNI_PLATFORM` 以 `mp-` 开头时生效，主要完成以下处理：
  *
  * 1. 将 Axios 浏览器平台的 FormData 模块替换为
  *    `miniprogram-formdata`。
@@ -200,7 +185,7 @@ export const uniAppAxiosUnplugin = /* #__PURE__ */ createUnplugin(() => {
 	 * 只有真正转换 Axios FormData 或 Blob 模块时才创建，
 	 * 普通非小程序构建不会进行依赖解析。
 	 *
-	 * @returns 从当前应用项目目录创建的 require 实例。
+	 * @returns 从当前应用项目目录创建的 require 实例
 	 */
 	const getRequireFromProject = (): ProjectRequire => {
 		requireFromProject ??= createRequire(resolve(cwd(), "package.json"));
@@ -233,18 +218,12 @@ export const uniAppAxiosUnplugin = /* #__PURE__ */ createUnplugin(() => {
 
 				const normalizedId = normalizeModuleId(id);
 
-				/*
-				 * form-data 当前浏览器入口在 self 不存在时直接访问
-				 * window.FormData。部分小程序环境没有 window，因此需要
-				 * 改为标准的 globalThis。
-				 */
+				// form-data 在 self 不存在时访问 window.FormData；部分小程序没有 window，因此改用 globalThis。
 				if (matchesModule(normalizedId, formDataBrowserModule)) {
 					const transformedCode = code.replace(/\bwindow\.FormData\b/g, "globalThis.FormData");
 
-					/*
-					 * 如果上游 form-data 修改了源码结构，没有匹配到目标代码，
-					 * 则不返回无意义的转换结果。
-					 */
+					// 如果上游 form-data 修改了源码结构，没有匹配到目标代码，
+					// 则不返回无意义的转换结果。
 					if (transformedCode === code) return;
 
 					return {
@@ -253,34 +232,26 @@ export const uniAppAxiosUnplugin = /* #__PURE__ */ createUnplugin(() => {
 					};
 				}
 
-				/*
-				 * 替换 Axios 的 FormData 平台模块。
-				 *
-				 * 只有该模块进入构建图后才检查 miniprogram-formdata，
-				 * 不会在插件文件被 import 时立即检查。
-				 */
+				// 替换 Axios 的 FormData 平台模块。
+				// 只有该模块进入构建图后才检查 miniprogram-formdata，
+				// 不会在插件文件被 import 时立即检查。
 				if (matchesModule(normalizedId, axiosFormDataModule)) {
 					assertPackageAvailable(getRequireFromProject(), "FormData", miniprogramFormDataPackage);
 
 					return createPolyfillModule("FormData", miniprogramFormDataPackage);
 				}
 
-				/*
-				 * 替换 Axios 的 Blob 平台模块。
-				 *
-				 * 只有该模块进入构建图后才检查 miniprogram-blob，
-				 * 不会在插件文件被 import 时立即检查。
-				 */
+				// 替换 Axios 的 Blob 平台模块。
+				// 只有该模块进入构建图后才检查 miniprogram-blob，
+				// 不会在插件文件被 import 时立即检查。
 				if (matchesModule(normalizedId, axiosBlobModule)) {
 					assertPackageAvailable(getRequireFromProject(), "Blob", miniprogramBlobPackage);
 
 					return createPolyfillModule("Blob", miniprogramBlobPackage);
 				}
 
-				/*
-				 * transform.filter 已经限制了模块范围。
-				 * 这里仍然返回 undefined，避免未知或上游变更后的模块被误处理。
-				 */
+				// transform.filter 已经限制了模块范围。
+				// 这里仍然返回 undefined，避免未知或上游变更后的模块被误处理。
 				return;
 			},
 		},

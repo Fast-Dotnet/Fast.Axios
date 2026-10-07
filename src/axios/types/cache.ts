@@ -16,7 +16,7 @@ interface CacheSetUseHandle {
 }
 
 /**
- * Fast 请求缓存处理器。
+ * Fast 请求缓存处理器
  *
  * 默认使用最多 256 项、5 分钟有效期的内存 Map；调用 `get.use()` 或 `set.use()` 可分别接入项目已有的本地缓存、状态仓库或持久化缓存。
  */
@@ -32,7 +32,7 @@ export class CacheManage {
 	/** 按请求 key 写入最终响应值；`.use(fn)` 会替换默认写入实现。 */
 	readonly set: CacheSetHandle & CacheSetUseHandle;
 
-	/** 未注册自定义缓存处理器时使用的进程内缓存。 */
+	/** 未注册自定义缓存处理器时使用的进程内缓存 */
 	private readonly _cacheRecord = new Map<string, { value: unknown; expiresAt: number }>();
 	private _namespace = "";
 	private _generation = 0;

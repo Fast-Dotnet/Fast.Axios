@@ -57,7 +57,7 @@ const getRequestKey = (config: InternalAxiosRequestConfig, duplicateKey?: string
 /**
  * 取消并移除同 key 的上一条请求；新请求必须在此操作完成后再写入 pendingMap。
  *
- * @param key - 当前请求计算出的重复请求 key。
+ * @param key - 当前请求计算出的重复请求 key
  */
 const cancelPendingRequest = (key: string): void => {
 	const cancel = pendingMap.get(key);
@@ -73,8 +73,8 @@ const cancelPendingRequest = (key: string): void => {
  *
  * 调用方已经提供 CancelToken 时不覆盖它；该请求仍可取消上一条重复请求，但不会加入自动重复取消表。
  *
- * @param key - 当前请求的重复请求 key。
- * @param config - 即将交给 Axios adapter 的内部请求配置。
+ * @param key - 当前请求的重复请求 key
+ * @param config - 即将交给 Axios adapter 的内部请求配置
  * @returns 当前请求对应的取消函数；已有外部 CancelToken 时返回 undefined。
  */
 const addPendingRequest = (key: string, config: InternalAxiosRequestConfig): Canceler | undefined => {
@@ -90,7 +90,7 @@ const addPendingRequest = (key: string, config: InternalAxiosRequestConfig): Can
  * 仅当 map 中仍是当前请求的取消函数时才删除，不能取消任何正在执行的请求。
  *
  * @param key - 请求拦截器生成的 key；拦截器尚未执行时可能为 undefined。
- * @param cancel - 当前请求写入 pendingMap 的取消函数。
+ * @param cancel - 当前请求写入 pendingMap 的取消函数
  */
 const removePendingRequest = (key: string | undefined, cancel: Canceler | undefined): void => {
 	if (key && cancel && pendingMap.get(key) === cancel) pendingMap.delete(key);
@@ -99,7 +99,7 @@ const removePendingRequest = (key: string | undefined, cancel: Canceler | undefi
 /**
  * 将服务端 message 安全转换为可供 UI 和 AxiosError 使用的字符串。
  *
- * @param message - Fast RESTful 接口返回的任意 message 值。
+ * @param message - Fast RESTful 接口返回的任意 message 值
  * @returns 可展示字符串；null、undefined、函数等无有效文本的值返回 undefined。
  */
 const normalizeMessage = (message: unknown): string | undefined => {
@@ -123,8 +123,8 @@ const normalizeMessage = (message: unknown): string | undefined => {
  *
  * 错误信息优先级为：响应体 message → 自定义 errorCode 映射 → default 通用提示。
  *
- * @param error - Axios adapter、HTTP 状态校验或请求拦截器产生的错误。
- * @returns 最终传给 Message error 处理器的文字。
+ * @param error - Axios adapter、HTTP 状态校验或请求拦截器产生的错误
+ * @returns 最终传给 Message error 处理器的文字
  */
 const httpErrorStatusHandle = async <Input>(error: AxiosError<unknown, Input>): Promise<string> => {
 	const fastAxios = useFastAxios();
@@ -149,8 +149,8 @@ const httpErrorStatusHandle = async <Input>(error: AxiosError<unknown, Input>): 
 /**
  * 从 Content-Disposition 或请求 URL 中提取下载文件名。
  *
- * @param response - 已通过 Axios 状态校验的文件响应。
- * @returns RFC 5987 文件名、普通 filename、URL 末段或最终兜底名称 download。
+ * @param response - 已通过 Axios 状态校验的文件响应
+ * @returns RFC 5987 文件名、普通 filename、URL 末段或最终兜底名称 download
  */
 const getDownloadFileName = (response: AxiosResponse): string => {
 	const headerValue = response.headers["content-disposition"] as unknown;
@@ -174,7 +174,7 @@ const getDownloadFileName = (response: AxiosResponse): string => {
  *
  * uni-app 下载由 uni-adapter 返回临时文件路径，此函数不重复处理平台文件系统。
  *
- * @param response - data 为 Blob 或可构造 Blob 数据的 Axios 文件响应。
+ * @param response - data 为 Blob 或可构造 Blob 数据的 Axios 文件响应
  * @throws Error 非 uni-app 且运行环境缺少浏览器下载 API 时抛出。
  */
 const downloadFile = (response: AxiosResponse): void => {
@@ -210,8 +210,8 @@ const downloadFile = (response: AxiosResponse): void => {
  *
  * 此步骤只合并配置和选择文件任务，不创建 Axios 实例，也不执行任何用户处理器。
  *
- * @param config - Fast.NET 生成或调用方手写的单次请求配置。
- * @param defaultRequestCipher - `createFastAxios()` 保存的全局加解密开关。
+ * @param config - Fast.NET 生成或调用方手写的单次请求配置
+ * @param defaultRequestCipher - `createFastAxios()` 保存的全局加解密开关
  * @returns Fast 扩展字段均已有确定值，并完成 upload/download/export 平台映射的新配置。
  */
 const resolveRequestOptions = <Input>(config: FastAxiosRequestConfig<Input>, defaultRequestCipher: boolean): ResolvedRequestOptions<Input> => {
@@ -251,10 +251,10 @@ const resolveRequestOptions = <Input>(config: FastAxiosRequestConfig<Input>, def
  * 保留重复请求取消、缓存、Loading、加解密、RESTful 校验、文件下载和自定义处理器等现有核心能力。
  *
  * @typeParam Output - 调用方最终获得的业务数据类型；文件请求应声明为对应的 AxiosResponse 类型。
- * @typeParam Input - Axios data 请求体类型。
- * @param axiosConfig - Fast.NET 生成或业务代码传入的完整请求配置。
- * @returns RESTful 简洁数据、自定义响应处理结果、原始响应体或文件 AxiosResponse。
- * @throws AxiosError 网络、超时、取消、HTTP 状态、Fast 业务 code 或文件响应校验失败时抛出。
+ * @typeParam Input - Axios data 请求体类型
+ * @param axiosConfig - Fast.NET 生成或业务代码传入的完整请求配置
+ * @returns RESTful 简洁数据、自定义响应处理结果、原始响应体或文件 AxiosResponse
+ * @throws 请求 Promise 在网络、超时、取消、HTTP 状态、Fast 业务 code 或文件响应校验失败时以 AxiosError 拒绝。
  */
 const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastAxiosRequestConfig<Input>): Promise<Output> => {
 	// 全部请求都从已初始化的全局容器读取 baseURL、公共请求头和项目级处理器。

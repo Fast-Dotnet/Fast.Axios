@@ -10,7 +10,7 @@ type InitializeOptions = Partial<Pick<FastAxios, "baseUrl" | "timeout" | "header
 type CodeKeyType = string | number;
 
 /**
- * Fast 请求的全局配置与扩展处理器容器。
+ * Fast 请求的全局配置与扩展处理器容器
  *
  * 默认由 `createFastAxios()` 创建单例；消息、缓存、加密、Loading 和拦截器均可通过各自的 `.use()` 替换默认实现。
  */
@@ -23,7 +23,7 @@ class FastAxios {
 	 *
 	 * 类字段已经提供默认基础配置；构造函数先合并调用方配置，再初始化错误码和全部可替换处理器。
 	 *
-	 * @param options - 首次创建时需要覆盖的基础配置。
+	 * @param options - 首次创建时需要覆盖的基础配置
 	 */
 	constructor(options: InitializeOptions = {}) {
 		this.setOptions(options);
@@ -81,14 +81,14 @@ class FastAxios {
 		return this;
 	}
 
-	/** 当前 Axios 实例默认拼接的基础地址。 */
+	/** 当前 Axios 实例默认拼接的基础地址 */
 	private _baseUrl = "";
 	/** Axios 实例使用的 baseURL；允许为空字符串，单次请求仍可传入绝对 URL。 */
 	get baseUrl(): string {
 		return this._baseUrl;
 	}
 
-	/** 当前 Axios 实例使用的毫秒超时值。 */
+	/** 当前 Axios 实例使用的毫秒超时值 */
 	private _timeout = 60000;
 	/**
 	 * 超时时间，单位毫秒
@@ -98,14 +98,14 @@ class FastAxios {
 		return this._timeout;
 	}
 
-	/** 跨请求共享的公共请求头记录。 */
+	/** 跨请求共享的公共请求头记录 */
 	private _headers: RawAxiosHeaders = {};
 	/** 创建 Axios 实例时注入的公共请求头；`setOptions()` 会按请求头名称合并更新。 */
 	get headers(): RawAxiosHeaders {
 		return this._headers;
 	}
 
-	/** 未被单次请求覆盖时采用的全局加解密开关。 */
+	/** 未被单次请求覆盖时采用的全局加解密开关 */
 	private _requestCipher = true;
 	/**
 	 * 全局请求加密和响应解密开关；单次请求的 requestCipher 具有更高优先级。
@@ -157,29 +157,29 @@ class FastAxios {
 	/** success/warning/info/error 消息处理器；默认输出到控制台。 */
 	readonly message: MessageManage;
 
-	/** 浏览器与 uni-app 确认框处理器。 */
+	/** 浏览器与 uni-app 确认框处理器 */
 	readonly messageBox: MessageBoxManage;
 
-	/** GET RESTful 简洁响应使用的缓存读写处理器。 */
+	/** GET RESTful 简洁响应使用的缓存读写处理器 */
 	readonly cache: CacheManage;
 
-	/** 请求发送前加密和响应成功后解密处理器。 */
+	/** 请求发送前加密和响应成功后解密处理器 */
 	readonly crypto: CryptoManage;
 
-	/** Fast 项目级请求、响应和响应错误处理器。 */
+	/** Fast 项目级请求、响应和响应错误处理器 */
 	readonly interceptors: InterceptorsManage;
 
 	/**
 	 * 添加或覆盖单个错误码提示。
 	 *
-	 * @param key - HTTP 状态码、Axios error code 或 Fast 业务 code。
-	 * @param message - 展示给用户的错误提示。
+	 * @param key - HTTP 状态码、Axios error code 或 Fast 业务 code
+	 * @param message - 展示给用户的错误提示
 	 */
 	addErrorCode(key: CodeKeyType, message: string): FastAxios;
 	/**
 	 * 批量添加或覆盖错误码提示。
 	 *
-	 * @param codes - 错误码到提示文字的映射。
+	 * @param codes - 错误码到提示文字的映射
 	 */
 	addErrorCode(codes: Record<CodeKeyType, string>): FastAxios;
 
@@ -204,9 +204,9 @@ class FastAxios {
  * 单例模式下重复调用会把本次 options 合并到现有实例；newInstance 为 true 时返回不写入全局单例的独立配置容器。
  * `axiosUtil.request()` 始终读取全局单例，独立容器不会自动参与该请求流程。
  *
- * @param options - 基础请求选项。
- * @param newInstance - 是否返回独立配置容器。
- * @returns 全局单例或新创建的独立实例。
+ * @param options - 基础请求选项
+ * @param newInstance - 是否返回独立配置容器，默认 `false`
+ * @returns 全局单例或新创建的独立实例
  */
 export const createFastAxios = (options?: InitializeOptions, newInstance = false): FastAxios => {
 	if (newInstance) {

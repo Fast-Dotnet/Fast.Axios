@@ -33,7 +33,7 @@ interface InterceptorsResponseErrorUseHandle {
  * 请求流程会等待三类处理器；响应处理器的 Promise 解析为 null/undefined 时继续默认处理，拒绝时向调用方传播。
  */
 export class InterceptorsManage {
-	/** 当前实际执行的三个项目级处理函数。 */
+	/** 当前实际执行的三个项目级处理函数 */
 	private readonly _handle: {
 		request: InterceptorsRequestHandle;
 		response: InterceptorsResponseHandle;

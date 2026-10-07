@@ -20,7 +20,7 @@ interface CryptoDecryptUseHandle {
 }
 
 /**
- * Fast 项目的请求加密和响应解密处理器。
+ * Fast 项目的请求加密和响应解密处理器
  *
  * 默认实现保持数据不变；注册函数可直接修改请求 config，并应从 decrypt 返回后续流程需要处理的完整响应体。
  */

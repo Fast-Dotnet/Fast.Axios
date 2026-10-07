@@ -10,7 +10,7 @@ export type UniNetworkTask = UniNamespace.RequestTask | UniNamespace.DownloadTas
 export type UniProgressResult = UniNamespace.OnProgressDownloadResult | UniNamespace.OnProgressUpdateResult;
 
 /**
- * 三个 uni-app 网络 API 共用的已解析请求选项。
+ * 三个 uni-app 网络 API 共用的已解析请求选项
  *
  * 生命周期回调由具体执行器注入，避免调用方绕过 Axios Promise；header 已转换为纯字符串对象，formData 始终为对象。
  * 该交叉类型保留 request/upload/download 的平台扩展字段，使同一个解析结果可以安全展开到三种 uni API。

@@ -15,7 +15,7 @@ export default class OnCanceled {
 	/** AbortSignal 与 CancelToken 共用的回调；必须保存同一引用才能正确取消订阅。 */
 	private onCanceled?: (cancel?: Cancel | Event) => void;
 
-	/** @param config 当前请求的内部配置，不会被取消处理器修改。 */
+	/** @param config - 当前请求的内部配置，不会被取消处理器修改。 */
 	constructor(config: InternalAxiosRequestConfig) {
 		this.config = config;
 	}
@@ -23,8 +23,8 @@ export default class OnCanceled {
 	/**
 	 * 订阅配置中存在的全部取消来源，并将它们绑定到指定任务。
 	 *
-	 * @param task 当前请求实际创建的 RequestTask、UploadTask 或 DownloadTask。
-	 * @param reject 当前 adapter Promise 的拒绝函数，用于先报告 Axios 取消错误。
+	 * @param task - 当前请求实际创建的 RequestTask、UploadTask 或 DownloadTask
+	 * @param reject - 当前 adapter Promise 的拒绝函数，用于先报告 Axios 取消错误。
 	 */
 	subscribe(task: Pick<UniNetworkTask, "abort">, reject: (reason?: unknown) => void): void {
 		// 无取消来源时立即返回，避免闭包无意义地持有 task、config 和 reject。
