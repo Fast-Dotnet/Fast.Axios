@@ -1,3 +1,5 @@
+import { clearCacheKeys } from "../cache-identity";
+
 /** 根据请求唯一标识读取缓存；未命中时应返回 `null` 或 `undefined`。 */
 type CacheGetHandle = (key: string) => unknown;
 /** 为缓存读取函数附加实现替换入口。 */
@@ -69,6 +71,7 @@ export class CacheManage {
 	clear(): void {
 		this._generation += 1;
 		this._cacheRecord.clear();
+		clearCacheKeys(this);
 	}
 
 	/** 创建带有默认内存缓存实现的处理器。 */

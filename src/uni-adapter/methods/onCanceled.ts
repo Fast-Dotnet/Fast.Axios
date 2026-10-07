@@ -26,7 +26,7 @@ export default class OnCanceled {
 	 * @param task 当前请求实际创建的 RequestTask、UploadTask 或 DownloadTask。
 	 * @param reject 当前 adapter Promise 的拒绝函数，用于先报告 Axios 取消错误。
 	 */
-	subscribe(task: UniNetworkTask, reject: (reason?: unknown) => void): void {
+	subscribe(task: Pick<UniNetworkTask, "abort">, reject: (reason?: unknown) => void): void {
 		// 无取消来源时立即返回，避免闭包无意义地持有 task、config 和 reject。
 		if (!this.config.cancelToken && !this.config.signal) return;
 

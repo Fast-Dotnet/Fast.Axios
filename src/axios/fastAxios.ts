@@ -1,6 +1,6 @@
 import { AxiosError } from "axios";
 import { CacheManage, CryptoManage, InterceptorsManage, LoadingManage, MessageBoxManage, MessageManage } from "./types";
-import type { AxiosHeaderValue } from "axios";
+import type { RawAxiosHeaders } from "axios";
 
 /** `createFastAxios()` 和 `setOptions()` 允许更新的全局基础配置。 */
 type InitializeOptions = Partial<Pick<FastAxios, "baseUrl" | "timeout" | "headers" | "requestCipher">>;
@@ -116,9 +116,9 @@ class FastAxios {
 	}
 
 	/** 跨请求共享的公共请求头记录。 */
-	private _headers: Record<string, AxiosHeaderValue> = {};
+	private _headers: RawAxiosHeaders = {};
 	/** 创建 Axios 实例时注入的公共请求头；`setOptions()` 会按请求头名称合并更新。 */
-	get headers(): Record<string, AxiosHeaderValue> {
+	get headers(): RawAxiosHeaders {
 		return this._headers;
 	}
 

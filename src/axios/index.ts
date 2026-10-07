@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosHeaders } from "axios";
 import { createUniAppAxiosAdapter } from "../uni-adapter";
+import { createCacheKey } from "./cache-identity";
 import { useFastAxios } from "./fastAxios";
 import { appendCacheBuster, serializeRequestBody } from "./request-identity";
 import type { AxiosResponse, Canceler, InternalAxiosRequestConfig } from "axios";
@@ -51,14 +52,6 @@ const getRequestKey = (config: InternalAxiosRequestConfig, duplicateKey?: string
 		config.withCredentials,
 		duplicateKey === undefined ? "body" : "explicit",
 	]);
-};
-
-/** 凭据只参与摘要计算，不以明文进入持久化缓存键；不支持 Web Crypto 时安全地跳过缓存。 */
-const createCacheKey = async (namespace: string, requestKey: string, generation: number): Promise<string | undefined> => {
-	if (!globalThis.crypto?.subtle || typeof TextEncoder === "undefined") return undefined;
-	const bytes = new TextEncoder().encode(JSON.stringify([namespace, requestKey, generation]));
-	const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
-	return `fast-cache:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 };
 
 /**
@@ -318,7 +311,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 				pendingKey !== undefined &&
 				cacheGeneration === fastAxios.cache.generation
 			) {
-				cacheKey = await createCacheKey(cacheNamespace, pendingKey, cacheGeneration);
+				cacheKey = await createCacheKey(fastAxios.cache, cacheNamespace, pendingKey, cacheGeneration);
 				if (cacheKey !== undefined && cacheGeneration === fastAxios.cache.generation) {
 					const cachedValue = fastAxios.cache.get(cacheKey);
 					if (cachedValue !== null && cachedValue !== undefined) {

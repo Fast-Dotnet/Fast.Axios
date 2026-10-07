@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { ESLint } from "eslint";
 import { getFileInfo } from "prettier";
 
-const root = fileURLToPath(new URL("../", import.meta.url));
+const root = fileURLToPath(new URL("../../", import.meta.url));
 const ignoredPaths = [
 	".agents/skills/example/SKILL.md",
 	".agents/skills/example/check.ts",

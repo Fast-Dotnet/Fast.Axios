@@ -1,15 +1,14 @@
 import { AxiosHeaders } from "axios";
 import { createUniAppError, progressEventReducer, resolveUniAppRequestOptions, settle } from "../utils";
 import OnCanceled from "./onCanceled";
-import type { AxiosResponse } from "axios";
-import type { Method } from "../type";
+import type { AxiosAdapter, AxiosResponse } from "axios";
 
 /**
  * 使用 `uni.downloadFile` 执行 `method: "download"` 请求。
  *
  * 成功响应的 `data` 是临时文件路径，不是文件二进制内容；文件生命周期由 uni-app 平台管理。
  */
-const download: Method = async (config) => {
+const download: AxiosAdapter = async (config) => {
 	return new Promise<AxiosResponse>((resolve, reject) => {
 		// 下载仍复用 Axios 的 baseURL、params、headers、auth 和 timeout，再转换为 downloadFile 选项。
 		const requestOptions = resolveUniAppRequestOptions(config);

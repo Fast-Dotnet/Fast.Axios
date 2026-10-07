@@ -19,6 +19,7 @@ export interface UniAppUploadFile {
  * adapter 支持透传给 uni-app 网络 API 的平台扩展字段。
  *
  * URL、data、header、method、timeout 和生命周期回调继续由 Axios 负责；这里只声明 Axios 本身没有提供的字段。
+ * 公开声明保留平台中立的字段投影，避免消费者依赖全局 UniNamespace；类型测试核对这些字段与原生声明一致。
  */
 export interface UniAppRequestOptions {
 	/** uni.request 的响应解析类型；文本请求默认使用 json。 */

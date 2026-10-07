@@ -1,6 +1,6 @@
 {
 	"name": "@fast-china/axios",
-	"version": "2.0.5",
+	"version": "2.0.6",
 	"description": "Typed Axios request SDK for Fast.NET, browsers, uni-app, and mini-program builds.",
 	"type": "module",
 	"keywords": [
@@ -67,8 +67,8 @@
 		"format:check": "prettier --check .",
 		"test": "pnpm run build && pnpm run test:types && pnpm run test:runtime && pnpm run test:package",
 		"test:types": "tsc --noEmit --project tests/tsconfig.json",
-		"test:runtime": "node --import tsx --test tests/fast-axios.test.ts tests/uni-adapter.test.ts tests/unplugin.test.ts tests/request.test.ts tests/request-identity.test.ts tests/cache-contract.test.ts tests/tool-ignores.test.mjs",
-		"test:package": "node --test tests/package.test.mjs && publint --strict --pack npm",
+		"test:runtime": "node --import tsx --test \"tests/runtime/*.test.ts\" \"tests/tooling/*.test.mjs\"",
+		"test:package": "node --test \"tests/package/*.test.mjs\" && publint --strict --pack npm",
 		"check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run format:check",
 		"prepack": "pnpm run check"
 	},

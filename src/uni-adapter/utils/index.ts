@@ -34,8 +34,8 @@ export const resolveUniAppRequestOptions = (config: InternalAxiosRequestConfig):
 	const responseType = config.responseType === "arraybuffer" ? "arraybuffer" : "text";
 	// 文本响应默认让 uni 先尝试 JSON.parse；arraybuffer 必须关闭 dataType，避免平台错误解析二进制。
 	const dataType = responseType === "text" ? (config.dataType ?? "json") : undefined;
-	// AxiosHeaders.from 创建独立副本；后续添加 Authorization 或删除 Content-Type 不会污染 response.config.headers。
-	const requestHeaders = AxiosHeaders.from(config.headers).normalize(false);
+	// 显式复制 AxiosHeaders；from() 会复用已有实例，导致 auth 和上传头处理修改原配置。
+	const requestHeaders = new AxiosHeaders(config.headers).normalize(false);
 	const methodType = getMethodType(config);
 	if (methodType === "upload") {
 		// transformRequest 会为对象 data 添加 application/json；uploadFile 必须自行生成 multipart/form-data 及 boundary。

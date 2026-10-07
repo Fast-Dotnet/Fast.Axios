@@ -65,6 +65,8 @@ git diff --check
 
 `pnpm check` runs the complete quality gate, and `prepack` repeats it before a package archive is created.
 
+`tests/runtime` groups configuration/handlers, request flow, cache/identity, uni-app networking, and build plugins by contract. `tests/types` checks public consumer types and native platform compatibility, `tests/package` checks built artifacts and strict consumers, and `tests/tooling` checks repository tool boundaries. Shared environment restoration belongs in `tests/helpers`. Runtime and package scripts discover matching test files automatically; consolidate related cases rather than adding a separate suite for each fix.
+
 Adapter changes must cover upload, download, ordinary methods, response transforms, status validation, cancellation, and relevant platform callbacks. Build-plugin changes must cover mini-program activation, path normalization, dependency resolution, and inactive-platform behavior.
 
 For package-entry or publishing changes, also build and inspect the archive:

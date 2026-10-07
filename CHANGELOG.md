@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases should follow [Semantic Versioning](https://semver.org/).
 
+## [2.0.6] - 2026-10-07
+
+### Fixed
+
+- Enable request caching without Web Crypto or TextEncoder using bounded opaque identity keys, retaining the default in-memory cache and credential isolation.
+- Copy uni-app request headers before applying Basic Auth or removing upload Content-Type, preserving the original Axios config.
+
+### Changed
+
+- Reuse Axios native types for headers, adapters, and cancellation while preserving platform-neutral public uni-app types.
+- Reorganize tests by configuration, request pipeline, cache identity, uni-app adapter, build plugins, public types, and package consumers; consolidate duplicate cases and expand contract coverage.
+
 ## [2.0.5] - 2026-09-22
 
 ### Fixed
@@ -77,6 +89,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Removed the duplicated nested publication package and legacy multi-tool build scripts.
 - Removed the temporary `uniTask` routing design; the original Fast method-based upload/download contract remains authoritative.
 
+[2.0.6]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.5...v2.0.6
 [2.0.5]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.4...v2.0.5
 [2.0.4]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.3...v2.0.4
 [2.0.3]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.2...v2.0.3

@@ -1,15 +1,14 @@
 import { AxiosHeaders } from "axios";
 import { createUniAppError, resolveUniAppRequestOptions, settle } from "../utils";
 import OnCanceled from "./onCanceled";
-import type { AxiosResponse } from "axios";
-import type { Method } from "../type";
+import type { AxiosAdapter, AxiosResponse } from "axios";
 
 /**
  * 使用 `uni.request` 执行 method 不是 `upload` 或 `download` 的标准 HTTP 请求。
  *
  * uni 的 success 只表示网络任务完成，包含 4xx/5xx；HTTP 状态是否成功仍由 Axios `validateStatus` 决定。
  */
-const request: Method = async (config) => {
+const request: AxiosAdapter = async (config) => {
 	return new Promise<AxiosResponse>((resolve, reject) => {
 		// 解析发生在创建任务之前，确保同步配置错误直接拒绝 adapter Promise，而不是进入 uni 回调。
 		const requestOptions = resolveUniAppRequestOptions(config);

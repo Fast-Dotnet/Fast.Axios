@@ -1,15 +1,14 @@
 import { AxiosHeaders } from "axios";
 import { createUniAppError, progressEventReducer, resolveUniAppRequestOptions, settle } from "../utils";
 import OnCanceled from "./onCanceled";
-import type { AxiosResponse } from "axios";
-import type { Method } from "../type";
+import type { AxiosAdapter, AxiosResponse } from "axios";
 
 /**
  * 使用 `uni.uploadFile` 执行 `method: "upload"` 请求。
  *
  * Axios `data` 在配置解析阶段恢复为普通 formData；文件本身由 filePath/file/files 与 name 等 uni 选项描述。
  */
-const upload: Method = async (config) => {
+const upload: AxiosAdapter = async (config) => {
 	return new Promise<AxiosResponse>((resolve, reject) => {
 		// 解析阶段会删除 Axios 自动添加的 JSON Content-Type，让 uni.uploadFile 生成正确的 multipart boundary。
 		const requestOptions = resolveUniAppRequestOptions(config);

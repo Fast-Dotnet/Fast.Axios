@@ -1,16 +1,7 @@
 /// <reference types="@dcloudio/types" />
 
-import type { AxiosPromise, InternalAxiosRequestConfig } from "axios";
-
 /** adapter 内部的完整分流结果；upload/download 来自 Axios method，其他 method 统一归入 request。 */
 export type MethodType = "request" | "download" | "upload";
-
-/**
- * 单个 uni-app 请求执行器的统一签名。
- *
- * 输入必须是 Axios 完成默认值合并和 transformRequest 后的内部配置，输出必须满足 Axios adapter Promise 契约。
- */
-export type Method = (config: InternalAxiosRequestConfig) => AxiosPromise;
 
 /** 三种 uni-app 网络任务的联合类型；取消处理器只依赖它们共有的 `abort()` 能力。 */
 export type UniNetworkTask = UniNamespace.RequestTask | UniNamespace.DownloadTask | UniNamespace.UploadTask;
