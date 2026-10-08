@@ -1,7 +1,7 @@
 /// <reference types="@dcloudio/types" />
 
-import type { AxiosHeaderValue, AxiosRequestConfig } from "axios";
 import type { UniAppRequestOptions, UniAppUploadFile, createFastAxios } from "@fast-china/axios";
+import type { AxiosHeaderValue, AxiosRequestConfig } from "axios";
 import type OnCanceled from "../../src/uni-adapter/methods/onCanceled";
 import type { UniNetworkTask } from "../../src/uni-adapter/type";
 import type { progressEventReducer } from "../../src/uni-adapter/utils";
