@@ -14,7 +14,7 @@
 
 An Axios-based request SDK with Fast response handling, extensible handlers and uni-app adapters.
 
-**[Documentation](http://docs.fastdotnet.cn/en-US/frontend/axios/) · [Official website](http://fastdotnet.com)**
+**[Documentation](https://docs.fastdotnet.cn/en-US/frontend/axios/) · [Official website](https://fastdotnet.com)**
 
 ## Highlights
 
@@ -128,9 +128,9 @@ Importing the package does not access `window` or `uni`. Platform APIs are acces
 
 ## Documentation
 
-- [API reference](http://docs.fastdotnet.cn/en-US/frontend/axios/api/)
-- [uni-app adapter](http://docs.fastdotnet.cn/en-US/frontend/axios/uni-app-adapter)
-- [Runtime and package contract](http://docs.fastdotnet.cn/en-US/frontend/axios/runtime-contract)
+- [API reference](https://docs.fastdotnet.cn/en-US/frontend/axios/api/)
+- [uni-app adapter](https://docs.fastdotnet.cn/en-US/frontend/axios/uni-app-adapter)
+- [Runtime and package contract](https://docs.fastdotnet.cn/en-US/frontend/axios/runtime-contract)
 - [Development and release](./docs/DEVELOPMENT_RELEASE.zh-CN.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Security policy](./SECURITY.md)

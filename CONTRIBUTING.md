@@ -44,9 +44,9 @@ Comments should explain intent and constraints. Do not repeat obvious syntax or 
 Keep user-visible behavior synchronized across:
 
 - `README.md` and `README.zh.md`;
-- [api.en](http://docs.fastdotnet.cn/en-US/frontend/axios/api/) and [api](http://docs.fastdotnet.cn/zh-CN/frontend/axios/api/);
-- [runtime-contract](http://docs.fastdotnet.cn/zh-CN/frontend/axios/runtime-contract);
-- [uni-app-adapter.en](http://docs.fastdotnet.cn/en-US/frontend/axios/uni-app-adapter) and [uni-app-adapter](http://docs.fastdotnet.cn/zh-CN/frontend/axios/uni-app-adapter);
+- [api.en](https://docs.fastdotnet.cn/en-US/frontend/axios/api/) and [api](https://docs.fastdotnet.cn/zh-CN/frontend/axios/api/);
+- [runtime-contract](https://docs.fastdotnet.cn/zh-CN/frontend/axios/runtime-contract);
+- [uni-app-adapter.en](https://docs.fastdotnet.cn/en-US/frontend/axios/uni-app-adapter) and [uni-app-adapter](https://docs.fastdotnet.cn/zh-CN/frontend/axios/uni-app-adapter);
 - `CHANGELOG.md` and public API TSDoc.
 
 English and Chinese documentation must describe the same API, defaults, constraints, and examples.
