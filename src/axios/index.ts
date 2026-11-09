@@ -1,6 +1,5 @@
 import axios, { AxiosError, AxiosHeaders } from "axios";
 import { createUniAppAxiosAdapter } from "../uni-adapter";
-import { createCacheKey } from "./cache-identity";
 import { useFastAxios } from "./fastAxios";
 import { appendCacheBuster, serializeRequestBody } from "./request-identity";
 import type { AxiosResponse, Canceler, InternalAxiosRequestConfig } from "axios";
@@ -262,10 +261,9 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 	const options = resolveRequestOptions(axiosConfig, fastAxios.requestCipher);
 	const method = options.method.toUpperCase();
 
-	// 显式命名空间负责账号/租户/语言和 Cookie 会话隔离；没有声明时不复用响应。
+	// clear() 后不允许在途旧请求重新写入缓存；账号与租户隔离由业务层负责。
 	const cacheGeneration = fastAxios.cache.generation;
-	const cacheNamespace = options.cacheNamespace ?? fastAxios.cache.namespace;
-	const canUseCache = options.cache && options.restfulResult && options.simpleDataFormat && cacheNamespace.length > 0;
+	const canUseCache = options.cache && options.restfulResult && options.simpleDataFormat;
 	let cacheKey: string | undefined;
 	let cacheHit: { value: unknown } | undefined;
 
@@ -305,21 +303,15 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 				cancelPendingRequest(pendingKey);
 				pendingCancel = addPendingRequest(pendingKey, config);
 			}
-			if (
-				canUseCache &&
-				(config.method ?? "GET").toUpperCase() === "GET" &&
-				pendingKey !== undefined &&
-				cacheGeneration === fastAxios.cache.generation
-			) {
-				cacheKey = await createCacheKey(fastAxios.cache, cacheNamespace, pendingKey, cacheGeneration);
-				if (cacheKey !== undefined && cacheGeneration === fastAxios.cache.generation) {
-					const cachedValue = fastAxios.cache.get(cacheKey);
-					if (cachedValue !== null && cachedValue !== undefined) {
-						cacheHit = { value: cachedValue };
-						// 仍经过 Axios 自己的取消检查；不再触发网络、Loading、解密或响应接管。
-						config.adapter = () => Promise.resolve({ data: undefined, status: 200, statusText: "OK", headers: {}, config });
-						return config;
-					}
+			if (canUseCache && (config.method ?? "GET").toUpperCase() === "GET" && cacheGeneration === fastAxios.cache.generation) {
+				// 在时间戳和加密器改写参数前，使用 Axios 解析的完整 URL 作为独立缓存键。
+				cacheKey = axios.getUri(config);
+				const cachedValue = fastAxios.cache.get(cacheKey);
+				if (cachedValue !== null && cachedValue !== undefined) {
+					cacheHit = { value: cachedValue };
+					// 仍经过 Axios 自己的取消检查；不再触发网络、Loading、解密或响应接管。
+					config.adapter = () => Promise.resolve({ data: undefined, status: 200, statusText: "OK", headers: {}, config });
+					return config;
 				}
 			}
 
@@ -424,7 +416,7 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 					: responseData;
 
 			// 缓存最终 result，而不是未解密响应，确保缓存命中与首次请求返回完全一致。
-			if (cacheKey && cacheGeneration === fastAxios.cache.generation) fastAxios.cache.set(cacheKey, result);
+			if (cacheKey !== undefined && cacheGeneration === fastAxios.cache.generation) fastAxios.cache.set(cacheKey, result);
 			return result as Output;
 		}) as unknown as NonNullable<Parameters<typeof instance.interceptors.response.use>[0]>,
 		async (error: unknown) => {

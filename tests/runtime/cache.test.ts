@@ -1,29 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCacheKey } from "../../src/axios/cache-identity";
 import { CacheManage } from "../../src/axios/types/cache";
-import { replaceGlobal } from "../helpers/environment";
 
-test("clear and namespace changes invalidate keys including custom storage", () => {
+test("custom storage receives unchanged keys and owns cleanup", () => {
 	const cache = new CacheManage();
 	const backend = new Map<string, unknown>();
 	cache.get.use((key) => backend.get(key));
 	cache.set.use((key, value) => {
 		backend.set(key, value);
 	});
-	cache.namespace = "first";
 	cache.set("key", "old");
 	assert.equal(cache.get("key"), "old");
 	cache.clear();
-	assert.equal(cache.get("key"), undefined);
+	assert.equal(cache.get("key"), "old");
+	assert.equal(backend.get("key"), "old");
 	cache.set("key", "new");
-	cache.namespace = "second";
-	assert.equal(cache.get("key"), undefined);
-	cache.namespace = "first";
-	assert.equal(cache.get("key"), undefined);
+	assert.equal(cache.get("key"), "new");
 });
 
-test("separate containers cannot revive persisted entries after restart", () => {
+test("separate containers reuse persisted entries with the same key", () => {
 	const backend = new Map<string, unknown>();
 	const create = () => {
 		const cache = new CacheManage();
@@ -31,12 +26,12 @@ test("separate containers cannot revive persisted entries after restart", () => 
 		cache.set.use((key, value) => {
 			backend.set(key, value);
 		});
-		cache.namespace = "same-account";
 		return cache;
 	};
 	const first = create();
 	first.set("key", "private");
-	assert.equal(create().get("key"), undefined);
+	assert.equal(create().get("key"), "private");
+	assert.deepEqual([...backend.keys()], ["key"]);
 });
 
 test("default cache bounds memory growth", () => {
@@ -76,16 +71,15 @@ test("updating an existing entry refreshes its expiry and eviction position", (c
 	assert.equal(cache.get("0"), "renewed");
 });
 
-test("unchanged namespaces retain entries and stable proxies use the latest backend", () => {
+test("clear invalidates default entries and stable proxies use the latest backend", () => {
 	const cache = new CacheManage();
 	const read = cache.get;
 	const write = cache.set;
-	cache.namespace = "account";
 	const generation = cache.generation;
 	cache.set("key", false);
-	cache.namespace = "account";
-	assert.equal(cache.generation, generation);
-	assert.equal(cache.get("key"), false);
+	cache.clear();
+	assert.equal(cache.generation, generation + 1);
+	assert.equal(cache.get("key"), null);
 	const backend = new Map<string, unknown>();
 	cache.get.use((key) => backend.get(key));
 	cache.set.use((key, value) => {
@@ -93,12 +87,4 @@ test("unchanged namespaces retain entries and stable proxies use the latest back
 	});
 	write("key", 0);
 	assert.equal(read("key"), 0);
-	assert.throws(() => Reflect.set(cache, "namespace", 123), TypeError);
-});
-
-test("available Web Crypto failures reject rather than silently changing cache identity", async (context) => {
-	const failure = new Error("digest unavailable");
-	replaceGlobal(context, "crypto", { subtle: { digest: () => Promise.reject(failure) } });
-	const cache = new CacheManage();
-	await assert.rejects(createCacheKey(cache, "account", "request", cache.generation), (error) => error === failure);
 });

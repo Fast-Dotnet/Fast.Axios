@@ -19,7 +19,6 @@ const fastAxios = createFastAxios({ baseUrl: "https://api.example.test", request
 
 beforeEach(() => {
 	fastAxios.setOptions({ baseUrl: "https://api.example.test", timeout: 60000, headers: {}, requestCipher: false });
-	fastAxios.cache.namespace = "test-user";
 	fastAxios.cache.clear();
 	fastAxios.interceptors.request.use(() => undefined);
 	fastAxios.interceptors.response.use(() => undefined);
@@ -356,21 +355,13 @@ describe("request identity and cache isolation", () => {
 		await Promise.all(requests);
 	});
 
-	test("cache opt-in requires a namespace and context invalidation rejects late writes", async () => {
+	test("cache true works without a namespace and clear rejects late writes", async () => {
 		let calls = 0;
 		const adapter: AxiosAdapter = (config) => Promise.resolve(response(config, ++calls));
 		const options = { url: "/cache-context", method: "get", requestType: "query" as const, cache: true, adapter };
-		fastAxios.cache.namespace = "";
-		await axiosUtil.request(options);
-		await axiosUtil.request(options);
-		assert.equal(calls, 2);
-		fastAxios.cache.namespace = "account-a";
-		await axiosUtil.request(options);
-		await axiosUtil.request(options);
-		assert.equal(calls, 3);
-		fastAxios.cache.namespace = "account-b";
-		await axiosUtil.request(options);
-		assert.equal(calls, 4);
+		assert.equal(await axiosUtil.request(options), 1);
+		assert.equal(await axiosUtil.request(options), 1);
+		assert.equal(calls, 1);
 		const entered = Promise.withResolvers<void>();
 		const release = Promise.withResolvers<void>();
 		const pending = axiosUtil.request({
@@ -386,11 +377,11 @@ describe("request identity and cache isolation", () => {
 		fastAxios.cache.clear();
 		release.resolve();
 		await pending;
-		assert.equal(await axiosUtil.request({ ...options, url: "/late-cache" }), 5);
+		assert.equal(await axiosUtil.request({ ...options, url: "/late-cache" }), 2);
 	});
 
 	for (const missingApi of ["crypto", "TextEncoder"]) {
-		test(`request caching works without ${missingApi} and never exposes identity in storage keys`, async (context) => {
+		test(`request caching works without ${missingApi} with URL keys independent of headers`, async (context) => {
 			const original = Object.getOwnPropertyDescriptor(globalThis, missingApi);
 			context.after(() => {
 				if (original) Object.defineProperty(globalThis, missingApi, original);
@@ -415,33 +406,62 @@ describe("request identity and cache isolation", () => {
 			assert.equal(await axiosUtil.request(options), 1);
 			assert.equal(await axiosUtil.request(options), 1);
 			assert.equal(calls, 1);
-			assert.equal(await axiosUtil.request({ ...options, headers: { Authorization: "Bearer example-placeholder-b" } }), 2);
-			assert.equal(await axiosUtil.request({ ...options, cacheNamespace: "different-tenant" }), 3);
+			assert.equal(await axiosUtil.request({ ...options, headers: { Authorization: "Bearer example-placeholder-b" } }), 1);
+			assert.deepEqual([...backend.keys()], ["https://api.example.test/uni-cache"]);
+			// 自定义存储的清理由业务层负责。
+			backend.clear();
 			fastAxios.cache.clear();
-			assert.equal(await axiosUtil.request(options), 4);
-			for (const key of backend.keys()) {
-				assert.doesNotMatch(key, /example-placeholder|Authorization|uni-cache|different-tenant/u);
-			}
+			assert.equal(await axiosUtil.request(options), 2);
 		});
 	}
 
-	test("fallback cache identity expires and remains bounded without Web Crypto", async (context) => {
-		const original = Object.getOwnPropertyDescriptor(globalThis, "crypto");
-		context.after(() => {
-			if (original) Object.defineProperty(globalThis, "crypto", original);
-			else Reflect.deleteProperty(globalThis, "crypto");
+	test("URL cache keys include queries and precede encryption or cache busting", async () => {
+		const backend = new Map<string, unknown>();
+		fastAxios.cache.get.use((key) => backend.get(key));
+		fastAxios.cache.set.use((key, value) => {
+			backend.set(key, value);
 		});
-		Object.defineProperty(globalThis, "crypto", { configurable: true, value: undefined });
-		let now = 1_000;
-		context.mock.method(Date, "now", () => now);
 		let calls = 0;
 		const adapter: AxiosAdapter = (config) => Promise.resolve(response(config, ++calls));
-		const options = { url: "/fallback-bounds", requestType: "query" as const, cache: true, adapter };
+		const options = { url: "/items?fixed=1", params: { page: 1 }, requestType: "query" as const, cache: true, adapter };
 		assert.equal(await axiosUtil.request(options), 1);
-		now += 300_000;
-		assert.equal(await axiosUtil.request(options), 2);
-		for (let i = 0; i < 256; i++) await axiosUtil.request({ ...options, url: `/fallback-bounds/${i}` });
-		assert.equal(await axiosUtil.request(options), 259);
+		assert.equal(await axiosUtil.request(options), 1);
+		assert.equal(await axiosUtil.request({ ...options, params: { page: 2 } }), 2);
+		assert.deepEqual([...backend.keys()], ["https://api.example.test/items?fixed=1&page=1", "https://api.example.test/items?fixed=1&page=2"]);
+		fastAxios.crypto.encrypt.use((config) => {
+			config.params = { encrypted: "opaque" };
+		});
+		assert.equal(await axiosUtil.request({ ...options, params: { page: 3 }, requestCipher: true }), 3);
+		assert.equal(await axiosUtil.request({ ...options, params: { page: 3 }, requestCipher: true }), 3);
+		assert.equal(backend.get("https://api.example.test/items?fixed=1&page=3"), 3);
+		assert.equal(calls, 3);
+	});
+
+	test("reinitializing the SDK reuses persistent URL entries", async () => {
+		const backend = new Map<string, unknown>();
+		const connect = (container: ReturnType<typeof createFastAxios>) => {
+			container.cache.get.use((key) => backend.get(key));
+			container.cache.set.use((key, value) => {
+				backend.set(key, value);
+			});
+		};
+		connect(fastAxios);
+		let calls = 0;
+		const adapter: AxiosAdapter = (config) => Promise.resolve(response(config, ++calls));
+		const options = { url: "/persistent", params: { page: 1 }, requestType: "query" as const, cache: true, adapter };
+		assert.equal(await axiosUtil.request(options), 1);
+		// 模拟页面重新加载后的全局容器初始化，持久化后端继续保留。
+		Reflect.set(fastAxios.constructor, "instance", undefined);
+		try {
+			const restarted = createFastAxios({ baseUrl: "https://api.example.test", requestCipher: false });
+			assert.notEqual(restarted, fastAxios);
+			connect(restarted);
+			assert.equal(await axiosUtil.request(options), 1);
+			assert.equal(calls, 1);
+			assert.deepEqual([...backend.keys()], ["https://api.example.test/persistent?page=1"]);
+		} finally {
+			Reflect.set(fastAxios.constructor, "instance", fastAxios);
+		}
 	});
 
 	test("duplicate cancellation affects only older equivalent requests and stays silent", async () => {

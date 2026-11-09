@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases should follow [Semantic Versioning](https://semver.org/).
 
+## [2.0.8] - 2026-11-10
+
+### Fixed
+
+- Restore GET caching with `cache: true` alone, using the complete Axios-resolved URL before timestamps or encryption and passing that key unchanged to cache handlers.
+- Allow persistent backends to reuse URL entries after SDK initialization. Applications own account/tenant isolation and persistent-cache cleanup; default expiry, capacity and duplicate-request cancellation remain unchanged.
+
+### Removed
+
+- Remove `cache.namespace` and the per-request `cacheNamespace` option. Applications should call `cache.clear()` and clean their custom storage explicitly.
+
 ## [2.0.7] - 2026-10-07
 
 ### Added
@@ -97,6 +108,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Removed the duplicated nested publication package and legacy multi-tool build scripts.
 - Removed the temporary `uniTask` routing design; the original Fast method-based upload/download contract remains authoritative.
 
+[2.0.8]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.7...v2.0.8
 [2.0.7]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.6...v2.0.7
 [2.0.6]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.5...v2.0.6
 [2.0.5]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.4...v2.0.5

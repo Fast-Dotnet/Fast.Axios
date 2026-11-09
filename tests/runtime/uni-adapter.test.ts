@@ -485,7 +485,6 @@ describe("platform-neutral default cache", () => {
 		};
 		Object.defineProperty(globalThis, "uni", { configurable: true, value: api });
 		const container = createFastAxios({ requestCipher: false });
-		container.cache.namespace = "example-account";
 		const options = { url: "https://api.example.test/default-cache", requestType: "query" as const, cache: true };
 		assert.equal(await axiosUtil.request(options), false);
 		assert.equal(await axiosUtil.request(options), false);

@@ -66,7 +66,7 @@ export interface AxiosOptions {
 	 */
 	loadingText?: string;
 	/**
-	 * 是否读取和写入请求缓存；仅 GET + RESTful + simpleDataFormat 且已设置缓存命名空间时生效。
+	 * 是否读取和写入请求缓存；仅 GET + RESTful + simpleDataFormat 时生效，直接使用完整 URL 作为缓存键。
 	 * @defaultValue false
 	 */
 	cache?: boolean;
@@ -114,12 +114,6 @@ export interface AxiosOptions {
 }
 
 export interface FastAxiosRequestConfig<Input = unknown> extends AxiosRequestConfig<Input>, AxiosOptions {
-	/**
-	 * 本次请求的缓存命名空间
-	 *
-	 * 未指定时使用 cache.namespace；两者均为空则跳过缓存。应包含账号、租户、语言或 Cookie 会话版本，不能使用明文凭据。
-	 */
-	cacheNamespace?: string;
 	/**
 	 * 不透明请求体的显式去重标识
 	 *
