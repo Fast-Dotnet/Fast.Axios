@@ -1,4 +1,4 @@
-/** 根据完整请求 URL 读取缓存；未命中时应返回 `null` 或 `undefined`。 */
+/** 根据接口路径和查询参数 读取缓存；未命中时应返回 `null` 或 `undefined`。 */
 type CacheGetHandle = (key: string) => unknown;
 /** 为缓存读取函数附加实现替换入口。 */
 interface CacheGetUseHandle {

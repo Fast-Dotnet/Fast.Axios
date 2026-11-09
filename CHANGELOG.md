@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases should follow [Semantic Versioning](https://semver.org/).
 
+## [2.0.9] - 2026-11-10
+
+### Changed
+
+- Use the endpoint path and serialized query parameters as GET cache keys, excluding baseURL and the origin of absolute URLs. Identical paths and queries share entries across base URLs; business code owns service isolation and cleanup of old full-URL entries.
+- Preserve cache lookup timing before timestamps and encryption, persistent-cache reuse, expiry and duplicate-request cancellation.
+
 ## [2.0.8] - 2026-11-10
 
 ### Fixed
@@ -108,6 +115,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Removed the duplicated nested publication package and legacy multi-tool build scripts.
 - Removed the temporary `uniTask` routing design; the original Fast method-based upload/download contract remains authoritative.
 
+[2.0.9]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.8...v2.0.9
 [2.0.8]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.7...v2.0.8
 [2.0.7]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.6...v2.0.7
 [2.0.6]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.5...v2.0.6

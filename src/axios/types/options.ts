@@ -66,7 +66,7 @@ export interface AxiosOptions {
 	 */
 	loadingText?: string;
 	/**
-	 * 是否读取和写入请求缓存；仅 GET + RESTful + simpleDataFormat 时生效，直接使用完整 URL 作为缓存键。
+	 * 是否读取和写入请求缓存；仅 GET + RESTful + simpleDataFormat 时生效，直接使用接口路径和查询参数 作为缓存键。
 	 * @defaultValue false
 	 */
 	cache?: boolean;

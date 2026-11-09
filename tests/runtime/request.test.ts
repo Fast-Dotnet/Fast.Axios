@@ -292,7 +292,7 @@ describe("response and error contracts", () => {
 });
 
 describe("request identity and cache isolation", () => {
-	test("cache keys respect each request's explicit baseURL", async () => {
+	test("cache keys share relative URLs across baseURLs without changing network targets", async () => {
 		let calls = 0;
 		const adapter: AxiosAdapter = (config) => {
 			calls++;
@@ -308,8 +308,10 @@ describe("request identity and cache isolation", () => {
 		};
 		const second = { ...first, baseURL: "https://second.example.test" };
 		assert.equal(await axiosUtil.request(first), first.baseURL);
-		assert.equal(await axiosUtil.request(second), second.baseURL);
+		assert.equal(await axiosUtil.request(second), first.baseURL);
 		assert.equal(await axiosUtil.request(first), first.baseURL);
+		assert.equal(calls, 1);
+		assert.equal(await axiosUtil.request({ ...second, cache: false }), second.baseURL);
 		assert.equal(calls, 2);
 	});
 
@@ -407,7 +409,7 @@ describe("request identity and cache isolation", () => {
 			assert.equal(await axiosUtil.request(options), 1);
 			assert.equal(calls, 1);
 			assert.equal(await axiosUtil.request({ ...options, headers: { Authorization: "Bearer example-placeholder-b" } }), 1);
-			assert.deepEqual([...backend.keys()], ["https://api.example.test/uni-cache"]);
+			assert.deepEqual([...backend.keys()], ["/uni-cache"]);
 			// 自定义存储的清理由业务层负责。
 			backend.clear();
 			fastAxios.cache.clear();
@@ -415,7 +417,7 @@ describe("request identity and cache isolation", () => {
 		});
 	}
 
-	test("URL cache keys include queries and precede encryption or cache busting", async () => {
+	test("relative URL cache keys exclude baseURL and precede encryption or cache busting", async () => {
 		const backend = new Map<string, unknown>();
 		fastAxios.cache.get.use((key) => backend.get(key));
 		fastAxios.cache.set.use((key, value) => {
@@ -426,14 +428,16 @@ describe("request identity and cache isolation", () => {
 		const options = { url: "/items?fixed=1", params: { page: 1 }, requestType: "query" as const, cache: true, adapter };
 		assert.equal(await axiosUtil.request(options), 1);
 		assert.equal(await axiosUtil.request(options), 1);
+		assert.equal(await axiosUtil.request({ ...options, baseURL: "https://other.example.test/api" }), 1);
+		assert.equal(await axiosUtil.request({ ...options, url: "https://other.example.test/items?fixed=1" }), 1);
 		assert.equal(await axiosUtil.request({ ...options, params: { page: 2 } }), 2);
-		assert.deepEqual([...backend.keys()], ["https://api.example.test/items?fixed=1&page=1", "https://api.example.test/items?fixed=1&page=2"]);
+		assert.deepEqual([...backend.keys()], ["/items?fixed=1&page=1", "/items?fixed=1&page=2"]);
 		fastAxios.crypto.encrypt.use((config) => {
 			config.params = { encrypted: "opaque" };
 		});
 		assert.equal(await axiosUtil.request({ ...options, params: { page: 3 }, requestCipher: true }), 3);
 		assert.equal(await axiosUtil.request({ ...options, params: { page: 3 }, requestCipher: true }), 3);
-		assert.equal(backend.get("https://api.example.test/items?fixed=1&page=3"), 3);
+		assert.equal(backend.get("/items?fixed=1&page=3"), 3);
 		assert.equal(calls, 3);
 	});
 
@@ -458,7 +462,7 @@ describe("request identity and cache isolation", () => {
 			connect(restarted);
 			assert.equal(await axiosUtil.request(options), 1);
 			assert.equal(calls, 1);
-			assert.deepEqual([...backend.keys()], ["https://api.example.test/persistent?page=1"]);
+			assert.deepEqual([...backend.keys()], ["/persistent?page=1"]);
 		} finally {
 			Reflect.set(fastAxios.constructor, "instance", fastAxios);
 		}

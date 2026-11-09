@@ -304,8 +304,11 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 				pendingCancel = addPendingRequest(pendingKey, config);
 			}
 			if (canUseCache && (config.method ?? "GET").toUpperCase() === "GET" && cacheGeneration === fastAxios.cache.generation) {
-				// 在时间戳和加密器改写参数前，使用 Axios 解析的完整 URL 作为独立缓存键。
-				cacheKey = axios.getUri(config);
+				// 在时间戳和加密器改写参数前，以接口路径和查询参数作为缓存键，不包含 baseURL 或绝对地址的源。
+				const params: unknown = config.params;
+				cacheKey = axios
+					.getUri({ url: config.url, params, paramsSerializer: config.paramsSerializer })
+					.replace(/^(?:[a-z][a-z\d+.-]*:)?\/\/[^/?#]*/iu, "");
 				const cachedValue = fastAxios.cache.get(cacheKey);
 				if (cachedValue !== null && cachedValue !== undefined) {
 					cacheHit = { value: cachedValue };
