@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases should follow [Semantic Versioning](https://semver.org/).
 
+## [2.0.10] - 2026-11-20
+
+### Fixed
+
+- Receive uni-app Blob requests as ArrayBuffer to preserve binary files, including POST exports and their request bodies.
+- Automatically save Uni H5 file responses and write supported App/mini-program documents before opening them with `showMenu: true`.
+- Skip automatic writing and opening for unsupported or unidentified document formats, preserve responses when automatic handling is disabled, and propagate file-writing/opening failures with Axios response context.
+
+### Changed
+
+- `axiosUtil.downloadFile()` returns `void | Promise<void>`; await it when using uni-app file handling.
+
 ## [2.0.9] - 2026-11-10
 
 ### Changed
@@ -115,6 +127,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Removed the duplicated nested publication package and legacy multi-tool build scripts.
 - Removed the temporary `uniTask` routing design; the original Fast method-based upload/download contract remains authoritative.
 
+[2.0.10]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.9...v2.0.10
 [2.0.9]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.8...v2.0.9
 [2.0.8]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.7...v2.0.8
 [2.0.7]: https://gitee.com/FastDotnet/fast.axios/compare/v2.0.6...v2.0.7

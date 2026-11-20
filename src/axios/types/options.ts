@@ -95,9 +95,9 @@ export interface AxiosOptions {
 	 */
 	showCodeMessage?: boolean;
 	/**
-	 * 是否在浏览器收到 download/export 或 Blob 响应后自动保存文件
+	 * 是否在收到 download/export 或 Blob 响应后自动处理文件
 	 *
-	 * uni-app 不执行浏览器保存逻辑，调用方从响应 data 获取临时文件路径。
+	 * 浏览器和 Uni H5 自动保存；App / 小程序落盘并打开支持的文档，其他格式跳过。
 	 * @defaultValue true
 	 */
 	autoDownloadFile?: boolean;
@@ -124,7 +124,7 @@ export interface FastAxiosRequestConfig<Input = unknown> extends AxiosRequestCon
 	 * Fast.NET OpenAPI 生成的业务请求类型
 	 *
 	 * 该字段用于 Fast 业务响应处理；uni adapter 的文件任务仍由 `method: "upload" | "download"` 选择。
-	 * `download`/`export` 在浏览器未指定 responseType 时默认接收 Blob。
+	 * `download`/`export` 未指定 responseType 时默认使用 Blob；uni adapter 以 ArrayBuffer 接收。
 	 */
 	requestType: RequestType;
 }

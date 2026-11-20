@@ -30,8 +30,8 @@ export const getMethodType = (config: InternalAxiosRequestConfig): MethodType =>
 export const resolveUniAppRequestOptions = (config: InternalAxiosRequestConfig): UniNetworkRequestWithoutCallback => {
 	// adapter 执行前 Axios 已运行 transformRequest，普通对象通常已变成 JSON 字符串；类型断言仅收窄到 uni 可接收的数据范围。
 	const data = config.data as UniNamespace.RequestOptions["data"];
-	// uni 只支持 text/arraybuffer；json、blob 等 Axios 类型先按 text 接收，再由 Axios transformResponse 处理。
-	const responseType = config.responseType === "arraybuffer" ? "arraybuffer" : "text";
+	// uni 不支持 Blob；以 ArrayBuffer 接收文件，避免文本解码破坏二进制内容。
+	const responseType = config.responseType === "arraybuffer" || config.responseType === "blob" ? "arraybuffer" : "text";
 	// 文本响应默认让 uni 先尝试 JSON.parse；arraybuffer 必须关闭 dataType，避免平台错误解析二进制。
 	const dataType = responseType === "text" ? (config.dataType ?? "json") : undefined;
 	// 显式复制 AxiosHeaders；from() 会复用已有实例，导致 auth 和上传头处理修改原配置。

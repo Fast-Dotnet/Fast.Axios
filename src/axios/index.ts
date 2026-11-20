@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosHeaders } from "axios";
 import { createUniAppAxiosAdapter } from "../uni-adapter";
+import { downloadFile } from "./download";
 import { useFastAxios } from "./fastAxios";
 import { appendCacheBuster, serializeRequestBody } from "./request-identity";
 import type { AxiosResponse, Canceler, InternalAxiosRequestConfig } from "axios";
@@ -20,7 +21,7 @@ const axiosOptions = {
 	simpleDataFormat: true,
 	showErrorMessage: true,
 	showCodeMessage: true,
-	// 浏览器文件响应默认自动保存；uni-app 仍只返回临时文件路径。
+	// 文件响应默认自动保存；App / 小程序仅落盘并打开支持的文档。
 	autoDownloadFile: true,
 	// 该值仅补齐 Required 类型；请求实际默认值来自 createFastAxios().requestCipher。
 	requestCipher: true,
@@ -146,65 +147,6 @@ const httpErrorStatusHandle = async <Input>(error: AxiosError<unknown, Input>): 
 };
 
 /**
- * 从 Content-Disposition 或请求 URL 中提取下载文件名。
- *
- * @param response - 已通过 Axios 状态校验的文件响应
- * @returns RFC 5987 文件名、普通 filename、URL 末段或最终兜底名称 download
- */
-const getDownloadFileName = (response: AxiosResponse): string => {
-	const headerValue = response.headers["content-disposition"] as unknown;
-	const disposition = typeof headerValue === "string" ? headerValue : "";
-	// 优先读取支持 UTF-8 的 filename*，再兼容普通 filename="..." 格式。
-	const encodedName = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
-	const basicName = /filename="?([^";]+)"?/i.exec(disposition)?.[1];
-	const urlName = response.config.url?.split("?")[0]?.split("/").pop();
-	const rawName = encodedName ?? basicName ?? urlName ?? "download";
-
-	try {
-		// 服务端常把中文、空格等字符进行 URL 编码，下载前恢复原始文件名。
-		return decodeURIComponent(rawName);
-	} catch {
-		return rawName;
-	}
-};
-
-/**
- * 在浏览器中保存 Axios 文件响应。
- *
- * uni-app 下载由 uni-adapter 返回临时文件路径，此函数不重复处理平台文件系统。
- *
- * @param response - data 为 Blob 或可构造 Blob 数据的 Axios 文件响应
- * @throws Error 非 uni-app 且运行环境缺少浏览器下载 API 时抛出。
- */
-const downloadFile = (response: AxiosResponse): void => {
-	// uni.downloadFile 已经把文件保存到平台临时目录，不能再使用 DOM 重复下载。
-	if (typeof uni !== "undefined") return;
-	if (typeof window === "undefined" || typeof document === "undefined" || typeof Blob === "undefined") {
-		throw new Error("当前运行环境不支持浏览器文件下载 API。");
-	}
-
-	// Axios 已返回 Blob 时直接复用；其他二进制或文本数据统一包装成下载 Blob。
-	const blob = response.data instanceof Blob ? response.data : new Blob([response.data], { type: "application/octet-stream;charset=UTF-8" });
-	const downloadElement = document.createElement("a");
-	const href = window.URL.createObjectURL(blob);
-	// 临时 a 标签不参与页面布局，只借助浏览器原生 download 能力触发保存。
-	downloadElement.style.display = "none";
-	downloadElement.href = href;
-	downloadElement.download = getDownloadFileName(response);
-	try {
-		document.body.appendChild(downloadElement);
-		downloadElement.click();
-	} finally {
-		// 挂载或点击失败也必须释放本次创建的对象；不移除其他节点。
-		try {
-			downloadElement.remove();
-		} finally {
-			window.URL.revokeObjectURL(href);
-		}
-	}
-};
-
-/**
  * 将可选扩展配置解析为请求流程内部可直接使用的完整配置。
  *
  * 此步骤只合并配置和选择文件任务，不创建 Axios 实例，也不执行任何用户处理器。
@@ -236,8 +178,8 @@ const resolveRequestOptions = <Input>(config: FastAxiosRequestConfig<Input>, def
 
 	// Fast.NET 把 Download 和 Export 都视为返回文件的业务行为。
 	const isFileDownload = config.requestType === "download" || config.requestType === "export";
-	if (typeof uni === "undefined" && isFileDownload && config.responseType === undefined) {
-		// Fast.NET 把 Download/Export 都生成为文件响应；浏览器未显式配置时默认接收 Blob。
+	if (isFileDownload && config.responseType === undefined) {
+		// 默认使用 Blob 标记文件响应，uni adapter 会以 ArrayBuffer 接收。
 		options.responseType = "blob";
 	}
 
@@ -369,8 +311,19 @@ const createAxios = async <Output = unknown, Input = unknown>(axiosConfig: FastA
 					throw new AxiosError(message, AxiosError.ERR_BAD_RESPONSE, response.config, response.request, response);
 				}
 
-				// 浏览器按配置触发保存；uni-app 中 downloadFile() 会直接返回，data 保留临时文件路径。
-				if (options.autoDownloadFile) downloadFile(response);
+				// 等待平台写入和打开完成，失败时保留响应上下文并遵循错误提示开关。
+				if (options.autoDownloadFile) {
+					try {
+						await downloadFile(response);
+					} catch (error) {
+						const fileError = AxiosError.from(error, AxiosError.ERR_BAD_RESPONSE, response.config, response.request, response);
+						const platformMessage: unknown = error && typeof error === "object" ? Reflect.get(error, "errMsg") : undefined;
+						fileError.message =
+							normalizeMessage(fileError.message) ?? normalizeMessage(platformMessage) ?? fastAxios.t("fileDownloadError");
+						if (options.showErrorMessage) fastAxios.message.error(fileError.message);
+						throw fileError;
+					}
+				}
 				return response as Output;
 			}
 
@@ -474,9 +427,9 @@ export const axiosUtil = {
 	 */
 	request: createAxios,
 	/**
-	 * 在浏览器中保存已有 Axios 文件响应。
+	 * 保存已有文件响应，或在 App / 小程序中落盘并打开支持的文档。
 	 *
-	 * uni-app 不执行 DOM 下载，下载结果应直接读取 adapter 响应中的临时文件路径。
+	 * uni-app 文件写入和打开为异步操作，调用方应等待返回的 Promise。
 	 */
 	downloadFile,
 };
